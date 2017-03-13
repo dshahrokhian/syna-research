@@ -6,8 +6,11 @@
 # Date: 20170310
 # Version : 1.0
 # Usage: bash install.sh
-# Notes: There are certain steps to be taken in the system before installing 
-#        via this script (refer to README)
+# NOTES: There are certain steps to be taken in the system before installing 
+#        via this script (refer to README): Run 
+#        `sudo gedit /etc/apt/sources.list` and change the line 
+#        `deb http://us.archive.ubuntu.com/ubuntu/ xenial main restricted` to 
+#        `deb http://us.archive.ubuntu.com/ubuntu/ xenial main universe`
 #==============================================================================
 
 # Exit script if any command fails
