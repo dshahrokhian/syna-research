@@ -1,5 +1,14 @@
 #!/bin/bash
-# Author: Daniyal Shahrokhian
+#==============================================================================
+# Title: install.sh
+# Description: Install everything necessary for DeepMotion to compile.
+# Author: Daniyal Shahrokhian <daniyal@kth.se>
+# Date: 20170310
+# Version : 1.0
+# Usage: bash install.sh
+# Notes: There are certain steps to be taken in the system before installing 
+#        via this script (refer to README)
+#==============================================================================
 
 # Exit script if any command fails
 set -e 
