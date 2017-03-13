@@ -1,7 +1,7 @@
 #!/bin/bash
 #==============================================================================
 # Title: install.sh
-# Description: Install everything necessary for DeepMotion to compile.
+# Description: Install everything necessary for OpenFace to compile.
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 # Date: 20170310
 # Version : 1.0
