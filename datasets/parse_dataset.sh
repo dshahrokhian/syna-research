@@ -2,17 +2,16 @@
 #==============================================================================
 # Title: parse_dataset.sh
 # Description: This script will parse the CK+ dataset for its use with OpenFace
-#             ,which involves first transforming the images into video and then
-#             feeding these videos to OpenFace.
+#              ,which involves first transforming the images into video and
+#              then feeding these videos to OpenFace.
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 # Date: 20170310
 # Version : 1.0
-# Usage: bash parse_dataset.sh <ck+ dataset directory> 
+# Usage: bash parse_dataset.sh {ck+, afew} <dataset directory>
 #                              <output directory for the videos>
 # Notes: 'ffmpeg' is required
 #==============================================================================
 
-# Auxiliar functions
 function images_to_video {
   cat "$1"/*.png | ffmpeg -y -loglevel error -r 30 -f image2pipe -i - "$2"
 }
@@ -31,7 +30,7 @@ set -o pipefail
 
 if [ $# != 3 ] || ([ "$1" != "ck+" ] && [ "$1" != "afew" ])
 then
-  echo "Usage: parse_dataset.sh {ck+,afew} <image dataset directory> <output directory for the videos>"
+  echo "Usage: parse_dataset.sh {ck+, afew} <dataset directory> <output directory for the videos>"
   exit 1
 fi
 
