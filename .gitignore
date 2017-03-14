@@ -1,3 +1,4 @@
 !datasets/parse_dataset.sh
 datasets/
 parse_dataset.log
+.vscode/
