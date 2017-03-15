@@ -8,8 +8,8 @@
 # Date: 20170310
 # Version : 1.0
 # Usage: bash parse_dataset.sh {ck+, afew} <dataset directory>
-#                              <output directory for the videos>
-# Notes: 'ffmpeg' is required
+#                              <output directory for parsed dataset>
+# Notes: 'ffmpeg' is a dependency
 #==============================================================================
 
 function images_to_video {
