@@ -9,23 +9,23 @@ DeepMotion - Dataloader for OpenFace FeatureExtraction's output file
 import os
 import csv
 
-def extract_columns(row, wanted_columns):
+def _extract_columns(row, wanted_columns):
     """ 
-    Extracts colums, ignoring those that do not appear in the row.
+    Extracts columns, ignoring those that do not appear in the row.
     
     Parameters
     ----------
     row : line of the feature's file
-    wanted_columns : List with the desired column descriptors
+    wanted_columns : list with the desired column descriptors
         
     Returns
     -------
     Dict
         (column, value)
     """
-    return dict((col, row[col]) for col in wanted_columns if col in row)
+    return {col : row[col] for col in wanted_columns if col in row}
 
-def extract_AUs(row):
+def _extract_AUs(row):
     """ 
     Extracts the Action Units out of a single line from OpenFace feature's file.
     
@@ -36,12 +36,12 @@ def extract_AUs(row):
     Returns
     -------
     Dict
-        Action Units
+        (timestamp, Dict(AU code, AU value))
     """
-    return extract_columns(row, ['AU' + str(k) + '_c' for k in range(68)]
-                                + ['AU' + str(k) + '_r' for k in range(68)])
+    return {row['timestamp'] : _extract_columns(row, ['AU' + str(k) + '_c' for k in range(46)]
+                                + ['AU' + str(k) + '_r' for k in range(46)])}
 
-def extract_2Dlandmarks(row):
+def _extract_2Dlandmarks(row):
     """ 
     Extracts the Landmarks out of a single line from OpenFace feature's file.
     
@@ -52,16 +52,24 @@ def extract_2Dlandmarks(row):
     Returns
     -------
     Dict
-        Landmarks
+        (timestamp, Dict(Landmark code, Landmark value))
     """
-    return extract_columns(row, ['x_' + str(k) for k in range(68)]
-                                + ['y_' + str(k) for k in range(68)])
+    return {row['timestamp'] : _extract_columns(row, ['x_' + str(k) for k in range(68)]
+                                + ['y_' + str(k) for k in range(68)])}
 
-if __name__ == "__main__":
-    filename = os.getcwd() + "/datasets/ck+parsed/S005/001/openface_features.txt"
-
+def _open_and_extract(filename, function):
+    features = {}
+    
     with open(filename, 'r') as f:
-        reader = csv.DictReader(f, skipinitialspace=True) # First line as 
-                                                          # description of the columns
+        reader = csv.DictReader(f, skipinitialspace=True) # Takes first line as 
+                                                          # key of the columns
         for row in reader:
-            print (extract_AUs(row))
+            features.update(function(row))
+
+    return features
+
+def get_2Dlandmarks(filename):
+    _open_and_extract(filename, _extract_2Dlandmarks)
+
+def get_AUs(filename):
+    _open_and_extract(filename, _extract_AUs)
