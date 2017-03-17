@@ -69,7 +69,31 @@ def _open_and_extract(filename, function):
     return features
 
 def get_2Dlandmarks(filename):
-    _open_and_extract(filename, _extract_2Dlandmarks)
+    """ 
+    Extracts the Landmarks from an OpenFace feature's file.
+    
+    Parameters
+    ----------
+    filename : feature's file
+        
+    Returns
+    -------
+    Dict
+        (timestamp, Dict(Landmark code, Landmark value))
+    """
+    return _open_and_extract(filename, _extract_2Dlandmarks)
 
 def get_AUs(filename):
-    _open_and_extract(filename, _extract_AUs)
+    """ 
+    Extracts the Action Units out of an OpenFace feature's file.
+    
+    Parameters
+    ----------
+    filename : feature's file
+        
+    Returns
+    -------
+    Dict
+        (timestamp, Dict(AU code, AU value))
+    """
+    return _open_and_extract(filename, _extract_AUs)
