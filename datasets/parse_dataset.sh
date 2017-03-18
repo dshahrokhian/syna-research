@@ -12,16 +12,24 @@
 # Notes: 'ffmpeg' is a dependency
 #==============================================================================
 
-function images_to_video {
+# Transforms the images in a directory from the CK+ dataset into videos
+function images2video {
   cat "$1"/*.png | ffmpeg -y -loglevel error -r 30 -f image2pipe -i - "$2"
 }
 
-function process_emotion {
-  # Create Landmark video using OpenFace
-  ../OpenFace/build/bin/FaceLandmarkVid -f "$1" -ov "$2/openface_video.mkv" >> parse_dataset.log
+# For some reason, OpenFace doesn't like certain .avi files from the AFEW dataset
+function avi2mkv {
+  ffmpeg -i "$1" -vcodec ffv1 -acodec pcm_s16le "$2"
+}
 
-  # Extract features using OpenFace
-  ../OpenFace/build/bin/FeatureExtraction -rigid -f "$1" -of "$2/openface_features.txt" >> parse_dataset.log
+# Create Landmark video using OpenFace
+function landmark_video {
+  ../OpenFace/build/bin/FaceLandmarkVid -f "$1" -ov "$2" >> parse_dataset.log
+}
+
+# Extract features using OpenFace
+function feature_extraction {
+  ../OpenFace/build/bin/FeatureExtraction -rigid -f "$1" -of "$2" >> parse_dataset.log
 }
 
 # Exit script if any command fails
@@ -45,6 +53,10 @@ fi
 # Process Cohn-Kanade extended dataset
 if [ $1 == "ck+" ]
 then
+  # The directory files encodes the different emotions with numbers. 
+  # For unification with other datasets, we transform this format.
+  declare -A EMOTION_CODES=(["000"]="Neutral" ["001"]="Angry" ["002"]="Contempt" ["003"]="Disgust" ["004"]="Fear" ["005"]="Happy" ["006"]="Sad" ["007"]="Surprise")
+  
   for SUBJECT in ${INPUT_DIRECTORY}/* # Directory containing all the subjects
   do
     if [[ -d "${SUBJECT}" ]]
@@ -53,12 +65,14 @@ then
       do
         if [[ -d "${EMOTION}" ]]
         then
-          OUTPUT_FILES=${OUTPUT_DIRECTORY}/$(basename ${SUBJECT})/$(basename ${EMOTION})
-          mkdir -p ${OUTPUT_FILES}
+          OUTPUT_FILES="${OUTPUT_DIRECTORY}/${EMOTION_CODES[$(basename ${EMOTION})]}"
+          mkdir -p ${OUTPUT_FILES}/videos ${OUTPUT_FILES}/features
 
           echo "Processing ${EMOTION}"
-          images_to_video ${EMOTION} "${OUTPUT_FILES}/original_video.mkv"
-          process_emotion "${OUTPUT_FILES}/original_video.mkv" ${OUTPUT_FILES}
+          VIDEO="${OUTPUT_FILES}/videos/original_$(basename ${SUBJECT}).mkv"
+          images2video "${EMOTION}" "${VIDEO}"
+          landmark_video "${VIDEO}" "${OUTPUT_FILES}/videos/openface_$(basename ${SUBJECT}).mkv"
+          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features/$(basename ${SUBJECT}).txt"
         fi
       done
     fi
@@ -73,11 +87,13 @@ then
     then
       for FILE in ${EMOTION}/* # Directory containing all the videos of the emotions
       do
-        OUTPUT_FILES=${OUTPUT_DIRECTORY}/$(basename ${EMOTION})/$(basename ${FILE})
+        OUTPUT_FILES="${OUTPUT_DIRECTORY}/$(basename ${EMOTION})"
         mkdir -p ${OUTPUT_FILES}
         
         echo "Processing ${FILE}"
-        process_emotion ${FILE} ${OUTPUT_FILES}
+        VIDEO="${OUTPUT_FILES}/original_$(basename ${FILE} .avi).mkv"
+        avi2mkv "${FILE}" "${VIDEO}"
+        process_emotion "${VIDEO}" "${OUTPUT_FILES}/openface_${SUBJECT}$(basename ${FILE} .avi).txt"
       done
     fi
   done
