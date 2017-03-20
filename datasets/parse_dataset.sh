@@ -53,26 +53,23 @@ fi
 # Process Cohn-Kanade extended dataset
 if [ $1 == "ck+" ]
 then
-  # The directory files encodes the different emotions with numbers. 
-  # For unification with other datasets, we transform this format.
-  declare -A EMOTION_CODES=(["000"]="Neutral" ["001"]="Angry" ["002"]="Contempt" ["003"]="Disgust" ["004"]="Fear" ["005"]="Happy" ["006"]="Sad" ["007"]="Surprise")
-  
   for SUBJECT in ${INPUT_DIRECTORY}/* # Directory containing all the subjects
   do
     if [[ -d "${SUBJECT}" ]]
     then
-      for EMOTION in ${SUBJECT}/* # Directory containing all the emotions shown by the subject
-      do
-        if [[ -d "${EMOTION}" ]]
-        then
-          OUTPUT_FILES="${OUTPUT_DIRECTORY}/${EMOTION_CODES[$(basename ${EMOTION})]}"
-          mkdir -p ${OUTPUT_FILES}/videos ${OUTPUT_FILES}/features
+      OUTPUT_FILES=${OUTPUT_DIRECTORY}/$(basename ${SUBJECT})
+      mkdir -p ${OUTPUT_FILES}/videos ${OUTPUT_FILES}/features
 
-          echo "Processing ${EMOTION}"
-          VIDEO="${OUTPUT_FILES}/videos/original_$(basename ${SUBJECT}).mkv"
-          images2video "${EMOTION}" "${VIDEO}"
-          landmark_video "${VIDEO}" "${OUTPUT_FILES}/videos/openface_$(basename ${SUBJECT}).mkv"
-          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features/$(basename ${SUBJECT}).txt"
+      for RECORD in ${SUBJECT}/* # Directory containing all the recordings from the subject
+      do
+        if [[ -d "${RECORD}" ]]
+        then
+          
+          echo "Processing ${RECORD}"
+          VIDEO="${OUTPUT_FILES}/videos/original_$(basename ${RECORD}).mkv"
+          images2video "${RECORD}" "${VIDEO}"
+          landmark_video "${VIDEO}" "${OUTPUT_FILES}/videos/openface_$(basename ${RECORD}).mkv"
+          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features/$(basename ${RECORD}).txt"
         fi
       done
     fi

@@ -25,6 +25,21 @@ def _extract_columns(row, wanted_columns):
     """
     return {col : row[col] for col in wanted_columns if col in row}
 
+def _extract_AU_activations(row):
+    """ 
+    Extracts the Action Units out of a single line from OpenFace feature's file.
+    
+    Parameters
+    ----------
+    row : line of the feature's file
+        
+    Returns
+    -------
+    Dict
+        (timestamp, Dict(AU code, AU value))
+    """
+    return {row['timestamp'] : _extract_columns(row, ['AU' + "{0:02d}".format(k) + '_c' for k in range(46)])}
+
 def _extract_AUs(row):
     """ 
     Extracts the Action Units out of a single line from OpenFace feature's file.
@@ -38,8 +53,8 @@ def _extract_AUs(row):
     Dict
         (timestamp, Dict(AU code, AU value))
     """
-    return {row['timestamp'] : _extract_columns(row, ['AU' + str(k) + '_c' for k in range(46)]
-                                + ['AU' + str(k) + '_r' for k in range(46)])}
+    return {row['timestamp'] : _extract_columns(row, ['AU' + "{0:02d}".format(k) + '_c' for k in range(46)]
+                                + ['AU' + "{0:02d}".format(k) + '_r' for k in range(46)])}
 
 def _extract_2Dlandmarks(row):
     """ 
@@ -97,3 +112,6 @@ def get_AUs(filename):
         (timestamp, Dict(AU code, AU value))
     """
     return _open_and_extract(filename, _extract_AUs)
+
+def get_AU_activations(filename):
+    return _open_and_extract(filename, _extract_AU_activations)
