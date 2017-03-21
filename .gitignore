@@ -5,3 +5,4 @@ parse_dataset.log
 OpenFace/
 opencv-3.1.0/
 lib/__pycache__/
+lib/dataloader/__pycache__/

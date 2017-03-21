@@ -6,6 +6,7 @@ DeepMotion - LSTM Network
 """
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 
+# Neural Network imports
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,17 +17,47 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
-import openface_dataloader as loader
+
+# Data Loader imports
+from dataloader.openface_dataloader import load_AU_activations
+from dataloader.ck_dataloader import load_CK_emotions
+
+def load_data(openface_dir, ck_dir):
+	""" 
+    Extracts OpenFace Action Units features and CK+ Emotions labels.
+
+    Parameters
+    ----------
+    openface_dir : root directory of the parsed CK+ dataset
+	ck_dir : root directory of the CK+ dataset
+    
+    Returns
+    -------
+    Dict, Dict
+        {Record identifier : {timestamp : {AU code : AU activation value}}},
+		{Record identifier : Emotion identifier}
+    """
+	all_action_units = load_AU_activations(openface_dir)
+	all_emotions = load_CK_emotions(ck_dir)
+	
+	return all_action_units, all_emotions
+
 
 def main():
     # fix random seed for reproducibility
 	np.random.seed(7)
 	
-	# load the dataset
-	filename = os.getcwd() + "/datasets/ck+parsed/S005/features/001.txt"
-	
-	action_units = loader.get_AU_activations(filename)
-	
+	# load the datasets
+	openface_dir = os.path.join(os.getcwd(), "datasets/ck+parsed")
+	ck_dir = os.path.join(os.getcwd(), "datasets/ck+")
+
+	all_action_units, all_emotions = load_data(openface_dir, ck_dir)
+	action_units = all_action_units["S005_001"]
+	print(action_units)
+
+	emotion = all_emotions["S005_001"]
+	print(emotion)
+
 	dataframe = pandas.DataFrame.from_dict(action_units, orient='index')
 	dataset = dataframe.values
 	

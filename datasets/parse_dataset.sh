@@ -1,9 +1,9 @@
 #!/bin/bash       
 #==============================================================================
 # Title: parse_dataset.sh
-# Description: This script will parse the CK+ dataset for its use with OpenFace
-#              ,which involves first transforming the images into video and
-#              then feeding these videos to OpenFace.
+# Description: This script will parse the CK+ and afew datasets for its use 
+#              with OpenFace, which involves first transforming the images into
+#              video and then feeding these videos to OpenFace.
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 # Date: 20170310
 # Version : 1.0
@@ -42,8 +42,9 @@ then
   exit 1
 fi
 
-INPUT_DIRECTORY="$2"
-OUTPUT_DIRECTORY="$3"
+# Robust paths
+INPUT_DIRECTORY="${2%/}"
+OUTPUT_DIRECTORY="${3%/}"
 
 if [ -f "parse_dataset.log" ]
 then
@@ -53,6 +54,8 @@ fi
 # Process Cohn-Kanade extended dataset
 if [ $1 == "ck+" ]
 then
+  INPUT_DIRECTORY="$INPUT_DIRECTORY/cohn-kanade-images"
+
   for SUBJECT in ${INPUT_DIRECTORY}/* # Directory containing all the subjects
   do
     if [[ -d "${SUBJECT}" ]]
@@ -65,10 +68,10 @@ then
           mkdir -p ${OUTPUT_FILES}
           
           echo "Processing ${RECORD}"
-          VIDEO="${OUTPUT_FILES}/original.mkv"
+          VIDEO="${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_original.mkv"
           images2video "${RECORD}" "${VIDEO}"
-          landmark_video "${VIDEO}" "${OUTPUT_FILES}/openface.mkv"
-          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features.txt"
+          landmark_video "${VIDEO}" "${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_openface.mkv"
+          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_features.txt"
         fi
       done
     fi
