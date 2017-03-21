@@ -57,19 +57,18 @@ then
   do
     if [[ -d "${SUBJECT}" ]]
     then
-      OUTPUT_FILES=${OUTPUT_DIRECTORY}/$(basename ${SUBJECT})
-      mkdir -p ${OUTPUT_FILES}/videos ${OUTPUT_FILES}/features
-
       for RECORD in ${SUBJECT}/* # Directory containing all the recordings from the subject
       do
         if [[ -d "${RECORD}" ]]
         then
+          OUTPUT_FILES=${OUTPUT_DIRECTORY}/$(basename ${SUBJECT})/$(basename ${RECORD})
+          mkdir -p ${OUTPUT_FILES}
           
           echo "Processing ${RECORD}"
-          VIDEO="${OUTPUT_FILES}/videos/original_$(basename ${RECORD}).mkv"
+          VIDEO="${OUTPUT_FILES}/original.mkv"
           images2video "${RECORD}" "${VIDEO}"
-          landmark_video "${VIDEO}" "${OUTPUT_FILES}/videos/openface_$(basename ${RECORD}).mkv"
-          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features/$(basename ${RECORD}).txt"
+          landmark_video "${VIDEO}" "${OUTPUT_FILES}/openface.mkv"
+          feature_extraction "${VIDEO}" "${OUTPUT_FILES}/features.txt"
         fi
       done
     fi
