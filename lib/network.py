@@ -16,7 +16,6 @@ from keras.preprocessing import sequence
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from keras.utils.np_utils import to_categorical
 
@@ -84,14 +83,11 @@ def main():
     np.random.seed(7)
     
     # load the datasets
-    openface_dir = os.path.join(os.getcwd(), "datasets/ck+parsed")
-    ck_dir = os.path.join(os.getcwd(), "datasets/ck+")
+    openface_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+parsed")
+    ck_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     features, labels = load_data(openface_dir, ck_dir)
     labels = to_categorical(labels)
-    # normalize the dataset
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    #dataset = scaler.fit_transform(dataset)
-    print(features)
+
     # split into train and test sets
     train_size = int(len(features) * 0.67)
     test_size = len(features) - train_size
@@ -103,16 +99,14 @@ def main():
 
     x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
     x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
-    
-    print("created datasets: ")
-    print(x_train[0])
+
     # create and fit the LSTM network
     model = Sequential()
     
-    model.add(LSTM(4, input_shape=(x_train.shape[1],x_train.shape[2])))
+    model.add(LSTM(100, input_shape=(x_train.shape[1],x_train.shape[2])))
     model.add(Dense(8))
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(x_train, y_train, validation_data=(x_test, y_test), nb_epoch=300, batch_size=1, verbose=2)
+    model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=3, batch_size=1, verbose=2)
     
     # Final evaluation of the model
     scores = model.evaluate(x_test, y_test, verbose=0)
