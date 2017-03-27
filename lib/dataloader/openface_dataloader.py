@@ -55,8 +55,7 @@ def _extract_AUs(row):
         {timestamp : {AU code : AU value}}
     """
     return {row['timestamp'] : _extract_columns(row, 
-                                ['AU' + "{0:02d}".format(k) + '_c' for k in range(46)]
-                                + ['AU' + "{0:02d}".format(k) + '_r' for k in range(46)])}
+                                ['AU' + "{0:02d}".format(k) + '_r' for k in range(46)])}
 
 def _extract_2Dlandmarks(row):
     """ 
@@ -120,7 +119,7 @@ def get_AU_activations(filename):
     """
     return open_and_extract(filename, _extract_AU_activations)
 
-def load_AU_activations(root_dirname):
+def load_OpenFace_features(root_dirname, features='AUs'):
     """ 
     Loads all the Action Units activations from the parsed CK+ database. See
     (https://github.com/dshahrokhian/DeepMotion/blob/master/datasets/parse_dataset.sh).
@@ -128,13 +127,14 @@ def load_AU_activations(root_dirname):
     Parameters
     ----------
     root_dirname : root directory of the parsed CK+ dataset
-    
+    features : which features to load {AUs, AU_activations, 2Dlandmarks}
+
     Returns
     -------
     Dict
         {Record identifier : {timestamp : {AU code : AU activation value}}}
     """
-    activations={}
+    output={}
 
     for dirname, _, file_list in os.walk(root_dirname):
         for filename in file_list:
@@ -142,6 +142,6 @@ def load_AU_activations(root_dirname):
                 record_id = filename[0:8]
                 filename = os.path.join(dirname,filename)
 
-                activations.update({record_id : get_AU_activations(filename)})
+                output.update({record_id : globals()['get_' + features](filename)})
     
-    return activations
+    return output
