@@ -121,8 +121,9 @@ def get_AU_activations(filename):
 
 def load_OpenFace_features(root_dirname, features='AUs'):
     """ 
-    Loads all the Action Units activations from the parsed CK+ database. See
-    (https://github.com/dshahrokhian/DeepMotion/blob/master/datasets/parse_dataset.sh).
+    Loads all the Action Units activations from the parsed CK+ or AFEW datasets. See
+    (https://github.com/dshahrokhian/DeepMotion/blob/master/datasets/parse_dataset.sh)
+    if you need to understand the parsed data directory structure.
 
     Parameters
     ----------
@@ -139,7 +140,7 @@ def load_OpenFace_features(root_dirname, features='AUs'):
     for dirname, _, file_list in os.walk(root_dirname):
         for filename in file_list:
             if filename.endswith(".txt"):
-                record_id = filename[0:8]
+                record_id = filename[0:9]
                 filename = os.path.join(dirname,filename)
 
                 output.update({record_id : globals()['get_' + features](filename)})

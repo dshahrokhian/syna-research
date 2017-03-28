@@ -47,7 +47,7 @@ def load_CK_emotions(root_dirname):
     emotion_dir = os.path.join(root_dirname, "Emotion")
     for dirname, _, file_list in os.walk(emotion_dir):
         for filename in file_list:
-            record_id = filename[0:8]
+            record_id = filename[0:9]
             filename = os.path.join(dirname,filename)
 
             emotions.update({record_id : get_emotion(filename)})

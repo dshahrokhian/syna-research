@@ -107,22 +107,32 @@ def main():
         y_train, y_test = np.array(labels[0:train_size]), np.array(labels[train_size:len(labels)])
 
         # Normalize length with zero-padding
-        maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
-        x_train = sequence.pad_sequences(x_train, maxlen=maxlen, dtype='float32')
-        x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
-    
-        for layers in [[100], [50,50], [15,30], [30,15], [100,100], [50,80], [80,50], [20,20,20], [100,100,100], [50,50,50], [20,50,100], [100,50,20]]:
-            for epochs in [3, 6, 10]:
-                for batch_size in [1, 3, 6]:
+        #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
+        #x_train = sequence.pad_sequences(x_train, maxlen=maxlen, dtype='float32')
+        #x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
+        for layers in [[100]]:
+            for epochs in [10]:
+                for batch_size in [1]:
                     print("Iteration parameters:", data_type, layers, epochs, batch_size)
 
                     # Create and fit the LSTM network
-                    model = build_network(layers=layers, input_shape=(x_train.shape[1],x_train.shape[2]))
-                    model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
-    
+                    model = build_network(layers=layers, input_shape=(None,len(x_train[0][0])))
+                    #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
+                    for _ in range(0,6):
+                        for seq, label in zip(x_train, y_train):
+                            model.train_on_batch(np.array([seq]), np.array([label]))
+
                     # Final evaluation of the model
-                    scores = model.evaluate(x_test, y_test, verbose=0)
-                    print("Accuracy: %.2f%%" % (scores[1]*100))
+                    acc = 0
+                    samples = 0
+                    for seq, label in zip(x_test, y_test):
+                        acc += model.test_on_batch(np.array([seq]), np.array([label]))[1]
+                        samples += 1
+                    print("Accuracy: %.2f%%" % (acc/samples*100))
+
+                    #scores = model.evaluate(x_test, y_test, verbose=0)
+                    #print("Accuracy: %.2f%%" % (scores[1]*100))
+                    
 
 if __name__ == "__main__":
     main()
