@@ -90,9 +90,10 @@ then
         mkdir -p ${OUTPUT_FILES}
         
         echo "Processing ${FILE}"
-        VIDEO="${OUTPUT_FILES}/original_$(basename ${FILE} .avi).mkv"
+        VIDEO="${OUTPUT_FILES}/$(basename ${FILE} .avi)_original.mkv"
         avi2mkv "${FILE}" "${VIDEO}"
-        process_emotion "${VIDEO}" "${OUTPUT_FILES}/openface_${SUBJECT}$(basename ${FILE} .avi).txt"
+        landmark_video "${VIDEO}" "${OUTPUT_FILES}/$(basename ${FILE} .avi)_openface.mkv"
+        feature_extraction "${VIDEO}" "${OUTPUT_FILES}/$(basename ${FILE} .avi)_features.txt"
       done
     fi
   done
