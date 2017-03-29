@@ -31,6 +31,7 @@ def load_AFEW_emotions(root_dirname, set='Train'):
         emotion_dir = os.path.join(root_dirname, set)
     else:
         ValueError("set argument must be either 'Train' or 'Val'")
+    
     emotions={}
 
     for dirpath, _, file_list in os.walk(emotion_dir):
