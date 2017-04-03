@@ -45,15 +45,13 @@ def dicts2lists(dict_action_units, dict_emotions):
     """
     l_AUs = []
     l_emotions = []
-    first = True
+
     for record_id, activations in dict_action_units.items():
         if record_id in dict_emotions:
             record_AUs = []
             for timestamp in sorted(activations.keys()):
                 record_AUs.append(list(activations[timestamp].values()))
-            if (first):
-                print(record_id)
-                first = False
+            
             l_AUs.append(record_AUs)
             l_emotions.append(dict_emotions[record_id])
     

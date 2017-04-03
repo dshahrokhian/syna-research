@@ -29,7 +29,7 @@ function landmark_video {
 
 # Extract features using OpenFace
 function feature_extraction {
-  ../OpenFace/build/bin/FeatureExtraction -q -rigid -f "$1" -of "$2" >> parse_dataset.log
+  ../OpenFace/build/bin/FeatureExtraction -q -rigid -wild -multi-view 1 -f "$1" -of "$2" >> parse_dataset.log
 }
 
 # Exit script if any command fails
