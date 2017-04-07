@@ -1,8 +1,9 @@
-!datasets/parse_dataset.sh
-datasets/
+datasets/*
 parse_dataset.log
 .vscode/
 OpenFace/
 opencv-3.1.0/
-lib/__pycache__/
-lib/dataloader/__pycache__/
+**/__pycache__
+deepmotion/c3d/models/*
+!datasets/parse_dataset.sh
+!deepmotion/c3d/models/get_weights_and_mean.sh
