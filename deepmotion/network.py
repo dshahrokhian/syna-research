@@ -57,35 +57,72 @@ def dicts2lists(dict_action_units, dict_emotions):
     
     return l_AUs, l_emotions
 
-def load_data(openface_dir, emotion_dir, dataset, data_type='AUs', set='Train'):
+
+def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
     """ 
-    Extracts OpenFace Action Units features and CK+/AFEW Emotion labels.
+    Extracts OpenFace Action Units features and CK+ Emotion labels,
+    preserving the order (e.g. x_train[0] corresponds to the same sample as
+    y_train[0]).
 
     Parameters
     ----------
     openface_dir : root directory of the parsed dataset with OpenFace
-    emotion_dir : root directory of the CK+/AFEW dataset
-    dataset : what is the dataset {CK, AFEW}
+    emotion_dir : root directory of the CK+ dataset
     data_type : which features to load {AUs, AU_activations, 2Dlandmarks}
     
     Returns
     -------
-    Dict, Dict
-        {Record identifier : {timestamp : {AU code : AU activation value}}},
-        {Record identifier : Emotion identifier}
+    List, List, List, List
+        OpenFace train features, OpenFace test features, 
+        CK+ train emotion labels, CK+ test emotion labels
     """
     all_action_units = load_OpenFace_features(openface_dir, features=data_type)
+    all_emotions = load_CK_emotions(emotion_dir)
+
+    features, labels = dicts2lists(all_action_units, all_emotions)
+    labels = to_categorical(labels)
+
+    # Split into train and test sets
+    train_size = int(len(features) * 0.67)
+    test_size = len(features) - train_size
+    x_train, x_test = np.array(features[0:train_size]), np.array(features[train_size:len(features)])
+    y_train, y_test = np.array(labels[0:train_size]), np.array(labels[train_size:len(labels)])
+
+    return x_train, x_test, y_train, y_test
+
+def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
+    """ 
+    Extracts OpenFace Action Units features and AFEW Emotion labels,
+    preserving the order (e.g. x_train[0] corresponds to the same sample as
+    y_train[0]).
+
+    Parameters
+    ----------
+    openface_dir : root directory of the parsed dataset with OpenFace
+    emotion_dir : root directory of the AFEW dataset
+    data_type : which features to load {AUs, AU_activations, 2Dlandmarks}
     
-    if dataset == 'CK':
-        all_emotions = load_CK_emotions(emotion_dir)
-    elif dataset == 'AFEW':
-        all_emotions = load_AFEW_emotions(emotion_dir, set=set)
-    else:
-        ValueError("dataset argument must be either 'CK' or 'AFEW'")
+    Returns
+    -------
+    List, List, List, List
+        OpenFace train features, OpenFace test features, 
+        AFEW train emotion labels, AFEW test emotion labels
+    """
+    train_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Train'), features=data_type )
+    train_emotions = load_AFEW_emotions(emotion_dir, set='Train')
+    train_features, train_labels = dicts2lists(train_action_units, train_emotions)
+    train_labels = to_categorical(train_labels)
 
-    l_AUs, l_emotions = dicts2lists(all_action_units, all_emotions)
+    test_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Val'), features=data_type )
+    test_emotions = load_AFEW_emotions(emotion_dir, set='Val')
+    test_features, test_labels = dicts2lists(test_action_units, test_emotions)
+    test_labels = to_categorical(test_labels)
 
-    return l_AUs, l_emotions
+    x_train, x_test = np.array(train_features), np.array(test_features)
+    y_train, y_test = np.array(train_labels), np.array(test_labels)
+
+    return x_train, x_test, y_train, y_test
+
 
 def build_network(layers=[100], input_shape=(10, 64)):
     model = Sequential()
@@ -104,25 +141,11 @@ def main():
     np.random.seed(7)
     
     # Load the datasets
-    openface_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/afew_train_parsed")
-    afew_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/afew")
+    openface_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+parsed")
+    afew_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
+    
     for data_type in ['AU_activations']:
-        features, labels = load_data(openface_dir, afew_dir, dataset='AFEW', data_type=data_type, set='Train')
-        labels = to_categorical(labels)
-
-        openface_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/afew_val_parsed")
-        test_features, test_labels = load_data(openface_dir, afew_dir, dataset='AFEW', data_type=data_type, set='Val')
-        test_labels = to_categorical(test_labels)
-        x_train, x_test = np.array(features), np.array(test_features)
-        y_train, y_test = np.array(labels), np.array(test_labels)
-        print(x_train[0])
-        print(y_train[0])
-        
-        # Split into train and test sets
-        #train_size = int(len(features) * 0.67)
-        #test_size = len(features) - train_size
-        #x_train, x_test = np.array(features[0:train_size]), np.array(features[train_size:len(features)])
-        #y_train, y_test = np.array(labels[0:train_size]), np.array(labels[train_size:len(labels)])
+        x_train, x_test, y_train, y_test = load_ck_data(openface_dir, afew_dir, data_type=data_type)
         
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
