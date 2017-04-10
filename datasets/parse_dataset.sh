@@ -68,7 +68,7 @@ then
           mkdir -p ${OUTPUT_FILES}
           
           echo "Processing ${RECORD}"
-          VIDEO="${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_original.mkv"
+          VIDEO="${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_original.mp4"
           images2video "${RECORD}" "${VIDEO}"
           landmark_video "${VIDEO}" "${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_openface.mkv"
           feature_extraction "${VIDEO}" "${OUTPUT_FILES}/$(basename ${SUBJECT})_$(basename ${RECORD})_features.txt"

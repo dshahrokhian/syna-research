@@ -7,6 +7,8 @@ DeepMotion - Dataloader for Cohn-Kanade Database (CK and CK+) Emotion files
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 
 import os
+from subprocess import Popen, PIPE
+from shlex import split
 
 def get_emotion(filename):
     """ 
@@ -53,3 +55,31 @@ def load_CK_emotions(root_dirname):
             emotions.update({record_id : get_emotion(filename)})
     
     return emotions
+
+def load_CK_videos(root_dirname):
+    """ 
+    Loads all the videos from CK+ database. Note: root_dirname must point at
+    the parsed directory of the database (with processed videos from images).
+
+    The reason the video filepath is returned instead of loading all videos is
+    for performance issues.
+
+    Parameters
+    ----------
+    root_dirname : root directory of the parsed CK+ dataset
+    
+    Returns
+    -------
+    Dict
+        {Record identifier : video filepath}
+    """
+    videos = {}
+
+    for dirname, _, file_list in os.walk(images_dir):
+        for filename in file_list:
+            record_id = filename[0:9]
+            filename = os.path.join(dirname, filename)
+
+            videos.update({record_id : filename})
+
+    return videos
