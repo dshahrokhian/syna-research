@@ -26,8 +26,8 @@ from dataloader.afew_dataloader import load_AFEW_emotions
 def dicts2lists(dict_action_units, dict_emotions):
     """ 
     Converts the dictionaries of the dataloaders into lists, containing only
-    records with identifiers present in both the Action Units dictionary and 
-    Emotions dictionary, and ordered by record identifiers.
+    records with identifiers present in both dictionaries, and ordered by 
+    record identifiers.
 
     Parameters
     ----------
@@ -76,10 +76,10 @@ def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
         OpenFace train features, OpenFace test features, 
         CK+ train emotion labels, CK+ test emotion labels
     """
-    all_action_units = load_OpenFace_features(openface_dir, features=data_type)
+    all_features = load_OpenFace_features(openface_dir, features=data_type)
     all_emotions = load_CK_emotions(emotion_dir)
 
-    features, labels = dicts2lists(all_action_units, all_emotions)
+    features, labels = dicts2lists(all_features, all_emotions)
     labels = to_categorical(labels)
 
     # Split into train and test sets
@@ -129,6 +129,7 @@ def build_network(layers=[100], input_shape=(10, 64)):
     
     for layer in layers[:-1]:
         model.add(LSTM(layer, input_shape=input_shape, return_sequences=True))
+        model.add(Activation('relu'))
     model.add(LSTM(layers[-1], input_shape=input_shape))
     model.add(Dense(8))
     model.add(Activation('softmax'))
@@ -141,11 +142,11 @@ def main():
     np.random.seed(7)
     
     # Load the datasets
-    openface_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+parsed")
-    afew_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
+    features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+parsed")
+    labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     
     for data_type in ['AU_activations']:
-        x_train, x_test, y_train, y_test = load_ck_data(openface_dir, afew_dir, data_type=data_type)
+        x_train, x_test, y_train, y_test = load_ck_data(features_dir, labels_dir, data_type=data_type)
         
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset

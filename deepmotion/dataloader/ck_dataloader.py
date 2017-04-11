@@ -8,7 +8,6 @@ DeepMotion - Dataloader for Cohn-Kanade Database (CK and CK+) Emotion files
 
 import os
 from subprocess import Popen, PIPE
-from shlex import split
 
 def get_emotion(filename):
     """ 
@@ -71,7 +70,7 @@ def load_CK_videos(root_dirname):
     Returns
     -------
     Dict
-        {Record identifier : video filepath}
+        {Record identifier : video path}
     """
     videos = {}
 
