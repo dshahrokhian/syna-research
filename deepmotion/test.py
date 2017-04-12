@@ -107,7 +107,11 @@ def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
     List, List, List, List
         OpenFace train features, OpenFace test features, 
         AFEW train emotion labels, AFEW test emotion labels
-    """
+    """seq
+seq
+seq
+seq
+seq
     train_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Train'), features=data_type )
     train_emotions = load_AFEW_emotions(emotion_dir, set='Train')
     train_features, train_labels = dicts2lists(train_action_units, train_emotions)
@@ -161,14 +165,14 @@ def main():
                     model = build_network(layers=layers, input_shape=(None,len(x_train[0][0])))
                     #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
                     for _ in range(epochs):
-                        for seq, label in zip(x_train, y_train):
-                            model.train_on_batch(np.array([seq]), np.array([label]))
+                        for X, Y in zip(x_train, y_train):
+                            model.train_on_batch(np.array([X]), np.array([Y]))
 
                         # Final evaluation of the model
                         acc = 0
                         samples = 0
-                        for seq, label in zip(x_test, y_test):
-                            acc += model.test_on_batch(np.array([seq]), np.array([label]))[1]
+                        for X, Y in zip(x_test, y_test):
+                            acc += model.test_on_batch(np.array([X]), np.array([Y]))[1]
                             samples += 1
                         print("Accuracy: %.2f%%" % (acc/samples*100))
 

@@ -3,25 +3,29 @@
 # C3D imports
 import matplotlib
 matplotlib.use('Agg')
-from keras.models import model_from_json
+from keras.models import model_from_json, Sequential
 import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import c3d.c3d_model
+import deepmotion.c3d.c3d_model
 import sys
 import keras.backend as K
 
 # DeepMotion imports
-from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout
+from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout, Input
 
 # Data Loader imports
-from dataloader.ck_dataloader import load_CK_emotions, load_CK_videos
+from deepmotion.dataloader.ck_dataloader import load_CK_emotions, load_CK_videos
+import deepmotion.dataloader.video_utils
 
 dim_ordering = K.image_dim_ordering
 print("[Info] image_dim_order (from default ~/.keras/keras.json)={}".format(
         dim_ordering))
 backend = dim_ordering
+
+input_size = (112, 112)
+clip_length = 16
 
 def dicts2lists(dict_videos, dict_emotions):
     """ 
@@ -176,30 +180,75 @@ def diagnose(data, verbose=True, label='input', plots=False, backend='tf'):
 
     return
 
-def modify_c3d(model, layers=[100], input_shape=(10, 64)):
+def get_features_model(c3d_model):
     
-    # Remove last layers, which are for sports classification
+    # Remove last 4 layers, which are for sports classification
     for _ in range(4):
-        model.layers.pop()
-        model.outputs = [model.layers[-1].output]
-        model.layers[-1].outbound_nodes = []
+        c3d_model.layers.pop()
+        c3d_model.outputs = [c3d_model.layers[-1].output]
+        c3d_model.layers[-1].outbound_nodes = []
 
-    for layer in layers[:-1]:
-        model.add(LSTM(layer, input_shape=input_shape, return_sequences=True))
-        model.add(Activation('relu'))
-    model.add(LSTM(layers[-1]))
-    #model.add(Activation('relu'))
-    model.add(Dense(8))
-    model.add(Activation('softmax'))
-    #model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    c3d_model.compile(optimizer='sgd', loss='mse')
 
-    return model
+    return c3d_model
+
+def get_temporal_model(layers=[100]):
+
+    temp_model = Sequential()
+    
+    temp_model.add(Input(batch_shape=(1, 1, 4096,), name='features'))
+    temp_model.add(BatchNormalization(name='normalization'))
+    temp_model.add(Dropout(p=.5))
+    temp_model.add(LSTM(layers[-1], return_sequences=True, stateful=True, name='lsmt1'))
+    temp_model.add(Dropout(p=.5))
+    temp_model.add(TimeDistributed(Dense(8, activation='softmax'), name='fc'))
+
+    temp_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    return temp_model
+
+def get_vid(filename):
+    print("[Info] Loading a sample video...")
+    cap = cv2.VideoCapture(filename)
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    vid = []
+    while True:
+        ret, img = cap.read()
+        if not ret:
+            break
+        vid.append(cv2.resize(img, (171, 128)))
+    vid = np.array(vid, dtype=np.float32)
+
+    #plt.imshow(vid[2000]/256)
+    #plt.show()
+
+    # sample clip_length
+    #start_frame = 100
+    start_frame = 2000
+
+    X = vid[start_frame:(start_frame + clip_length), :, :, :]
+    #diagnose(X, verbose=True, label='X (clip_length-frame clip)', plots=show_images)
+
+    # subtract mean
+    mean_cube = np.load('models/train01_16_128_171_mean.npy')
+    mean_cube = np.transpose(mean_cube, (1, 2, 3, 0))
+    #diagnose(mean_cube, verbose=True, label='Mean cube', plots=show_images)
+    X -= mean_cube
+    #diagnose(X, verbose=True, label='Mean-subtracted X', plots=show_images)
+
+    # center crop
+    X = X[:, 8:120, 30:142, :] # (l, h, w, c)
+    #diagnose(X, verbose=True, label='Center-cropped X', plots=show_images)
 
 def main():
     show_images = False
     diagnose_plots = False
-    model_dir = './models'
+    model_dir = os.path.join(os.path.dirname(__file__), 'deepmotion/c3d/models')
     global backend
+
+    epochs = 6
+    batch_size = 1
 
     # override backend if provided as an input arg
     if len(sys.argv) > 1:
@@ -218,68 +267,36 @@ def main():
 
     print("[Info] Reading model architecture...")
     model = model_from_json(open(model_json_filename, 'r').read())
-    #model = c3d_model.get_model(backend=backend)
-
-    # visualize model
-    model_img_filename = os.path.join(model_dir, 'c3d_model.png')
-    if not os.path.exists(model_img_filename):
-        from keras.utils.vis_utils import plot_model
-        plot_model(model, to_file=model_img_filename)
 
     print("[Info] Loading model weights...")
     model.load_weights(model_weight_filename)
     print("[Info] Loading model weights -- DONE!")
-    ### DeepMotion modification
-    model = modify_c3d(model)
-
-    model.compile(loss='mean_squared_error', optimizer='sgd')
 
     print("[Info] Loading labels...")
-    with open('sports1m/labels.txt', 'r') as f:
+    with open('datasets/labels.txt', 'r') as f:
         labels = [line.strip() for line in f.readlines()]
     print('Total labels: {}'.format(len(labels)))
 
+    # DeepMotion
+    features_model = get_features_model(model)
+    temporal_model = get_temporal_model()
+
     # Load videos and emotions
-    videos_path = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+videos")
-    emotions_path = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
+    videos_path = os.path.join(os.path.dirname(__file__),  "datasets/ck+videos")
+    emotions_path = os.path.join(os.path.dirname(__file__), "datasets/ck+")
     
     x_train, x_test, y_train, y_test = load_ck_data(videos_path, emotions_path)
-    print()
-    print("[Info] Loading a sample video...")
-    cap = cv2.VideoCapture('dM06AMFLsrc.mp4')
-    vid = []
-    while True:
-        ret, img = cap.read()
-        if not ret:
-            break
-        vid.append(cv2.resize(img, (171, 128)))
-    vid = np.array(vid, dtype=np.float32)
-
-    #plt.imshow(vid[2000]/256)
-    #plt.show()
-
-    # sample 16-frame clip
-    #start_frame = 100
-    start_frame = 2000
-
-    X = vid[start_frame:(start_frame + 16), :, :, :]
-    #diagnose(X, verbose=True, label='X (16-frame clip)', plots=show_images)
-
-    # subtract mean
-    mean_cube = np.load('models/train01_16_128_171_mean.npy')
-    mean_cube = np.transpose(mean_cube, (1, 2, 3, 0))
-    #diagnose(mean_cube, verbose=True, label='Mean cube', plots=show_images)
-    X -= mean_cube
-    #diagnose(X, verbose=True, label='Mean-subtracted X', plots=show_images)
-
-    # center crop
-    X = X[:, 8:120, 30:142, :] # (l, h, w, c)
-    #diagnose(X, verbose=True, label='Center-cropped X', plots=show_images)
-
-    if backend == 'th':
-        X = np.transpose(X, (3, 0, 1, 2)) # input_shape = (3,16,112,112)
-    else:
-        pass                              # input_shape = (16,112,112,3)
+    for _ in range(epochs):
+        for X, Y in zip(x_train, y_train):
+            model.train_on_batch(np.array([X]), np.array([Y]))
+        
+        # Final evaluation of the model
+        acc = 0
+        samples = 0
+        for X, Y in zip(x_test, y_test):
+            acc += model.test_on_batch(np.array([X]), np.array([Y]))[1]
+            samples += 1
+        print("Accuracy: %.2f%%" % (acc/samples*100))    
 
     # get activations for intermediate layers if needed
     inspect_layers = [
@@ -296,24 +313,6 @@ def main():
                  label='{} activation'.format(layer),
                  plots=diagnose_plots,
                  backend=backend)
-
-    # inference
-    output = model.predict_on_batch(np.array([X]))
-
-    # show results
-    print('Saving class probabilitities in probabilities.png')
-    plt.plot(output[0])
-    plt.title('Probability')
-    plt.savefig("probabilities.png")
-    print('Position of maximum probability: {}'.format(output[0].argmax()))
-    print('Maximum probability: {:.5f}'.format(max(output[0])))
-    print('Corresponding label: {}'.format(labels[output[0].argmax()]))
-
-    # sort top five predictions from softmax output
-    top_inds = output[0].argsort()[::-1][:5]  # reverse sort and take five largest items
-    print('\nTop 5 probabilities and labels:')
-    for i in top_inds:
-        print('{1}: {0:.5f}'.format(output[0][i], labels[i]))
 
 if __name__ == '__main__':
     main()
