@@ -74,7 +74,7 @@ def load_CK_videos(root_dirname):
     """
     videos = {}
 
-    for dirname, _, file_list in os.walk(images_dir):
+    for dirname, _, file_list in os.walk(root_dirname):
         for filename in file_list:
             record_id = filename[0:9]
             filename = os.path.join(dirname, filename)
