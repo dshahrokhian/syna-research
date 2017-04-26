@@ -23,7 +23,7 @@ from dataloader.openface_dataloader import load_OpenFace_features
 from dataloader.ck_dataloader import load_CK_emotions
 from dataloader.afew_dataloader import load_AFEW_emotions
 
-def dicts2lists(dict_action_units, dict_emotions):
+def dicts2lists(dict_features, dict_emotions):
     """ 
     Converts the dictionaries of the dataloaders into lists, containing only
     records with identifiers present in both dictionaries, and ordered by 
@@ -31,9 +31,9 @@ def dicts2lists(dict_action_units, dict_emotions):
 
     Parameters
     ----------
-    dict_action_units : {Record identifier : 
+    dict_features : {Record identifier : 
                             {timestamp :    
-                                {AU code : AU activation value}
+                                {feature code : feature value}
                             }
                         }
     dict_emotions : {Record identifier : Emotion identifier}
@@ -41,24 +41,24 @@ def dicts2lists(dict_action_units, dict_emotions):
     Returns
     -------
     List, List
-        [records, samples, AUs], [emotion identifiers]
+        [records, samples, features], [emotion identifiers]
     """
-    l_AUs = []
+    l_features = []
     l_emotions = []
 
-    for record_id, activations in dict_action_units.items():
+    for record_id, values in dict_features.items():
         if record_id in dict_emotions:
-            record_AUs = []
-            for timestamp in sorted(activations.keys()):
-                record_AUs.append(list(activations[timestamp].values()))
+            record_features = []
+            for timestamp in sorted(values.keys()):
+                record_features.append(list(values[timestamp].values()))
             
-            l_AUs.append(record_AUs)
+            l_features.append(record_features)
             l_emotions.append(dict_emotions[record_id])
     
-    return l_AUs, l_emotions
+    return l_features, l_emotions
 
 
-def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
+def load_ck_data(openface_dir, emotion_dir, data_type='AUs', split=0.67):
     """ 
     Extracts OpenFace Action Units features and CK+ Emotion labels,
     preserving the order (e.g. x_train[0] corresponds to the same sample as
@@ -69,6 +69,7 @@ def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
     openface_dir : root directory of the parsed dataset with OpenFace
     emotion_dir : root directory of the CK+ dataset
     data_type : which features to load {AUs, AU_activations, 2Dlandmarks}
+    split : Training set split ratio [0,1] (1-split will be returned as Testing set)
     
     Returns
     -------
@@ -83,7 +84,7 @@ def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
     labels = to_categorical(labels)
 
     # Split into train and test sets
-    train_size = int(len(features) * 0.67)
+    train_size = int(len(features) * split)
     test_size = len(features) - train_size
     x_train, x_test = np.array(features[0:train_size]), np.array(features[train_size:len(features)])
     y_train, y_test = np.array(labels[0:train_size]), np.array(labels[train_size:len(labels)])
@@ -107,11 +108,7 @@ def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
     List, List, List, List
         OpenFace train features, OpenFace test features, 
         AFEW train emotion labels, AFEW test emotion labels
-    """seq
-seq
-seq
-seq
-seq
+    """
     train_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Train'), features=data_type )
     train_emotions = load_AFEW_emotions(emotion_dir, set='Train')
     train_features, train_labels = dicts2lists(train_action_units, train_emotions)
@@ -126,7 +123,6 @@ seq
     y_train, y_test = np.array(train_labels), np.array(test_labels)
 
     return x_train, x_test, y_train, y_test
-
 
 def build_network(layers=[100], input_shape=(10, 64)):
     model = Sequential()
