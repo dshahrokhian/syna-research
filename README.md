@@ -1,5 +1,5 @@
 # DeepMotion
-Emotion Recognition based on Deep Learning.
+Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Temporal Features.
 
 *This project is still under development*
 
@@ -7,6 +7,15 @@ Emotion Recognition based on Deep Learning.
 1. Run `sudo gedit /etc/apt/sources.list` and change the line `deb http://us.archive.ubuntu.com/ubuntu/ xenial main restricted` to `deb http://us.archive.ubuntu.com/ubuntu/ xenial main universe`
 
 2. Run `install.sh <directory in which you want the project to be installed>`
+
+## Contributing
+At this stage, I don't even know if anyone is going to contribute. If by any chance you want to, you have to understand that I am a bitch when it comes to code quality. There are three alternatives:
+
+(a) You make a PR and your code quality is great, so it will be directly merged to the repo :)
+
+(b) You make a PR and your code quality sucks ass, so I will have to clean it :(
+
+(c) You make a PR and your code quality sucks ass, but you don't mind getting feedback. In the merge, I will say what I believe that can be changed, you make those changes, and we can all learn together and be happy forever :D 
 
 ## References
 [OpenFace](https://github.com/TadasBaltrusaitis/OpenFace)
