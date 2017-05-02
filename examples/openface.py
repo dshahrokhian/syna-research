@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-DeepMotion - LSTM Network
+DeepMotion - Example with OpenFace network
 ===============================================================================
 """
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
@@ -13,22 +13,21 @@ import matplotlib.pyplot as plt
 import pandas
 import math
 from keras.preprocessing import sequence
-from keras.models import Sequential
-from keras.layers import Dense, LSTM, Activation
 from sklearn.metrics import mean_squared_error
 from keras.utils.np_utils import to_categorical
+from deepmotion.deepmotion_model import get_model
 
 # Data Loader imports
-from dataloader.openface_dataloader import load_OpenFace_features
-from dataloader.ck_dataloader import load_CK_emotions
-from dataloader.afew_dataloader import load_AFEW_emotions
+from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
+from deepmotion.dataloader.ck_dataloader import load_CK_emotions
+from deepmotion.dataloader.afew_dataloader import load_AFEW_emotions
 
 def dicts2lists(dict_features, dict_emotions):
     """ 
     Converts the dictionaries of the dataloaders into lists, containing only
     records with identifiers present in both dictionaries, and ordered by 
     record identifiers.
-
+    
     Parameters
     ----------
     dict_features : {Record identifier : 
@@ -124,19 +123,6 @@ def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
 
     return x_train, x_test, y_train, y_test
 
-def build_network(layers=[100], input_shape=(10, 64)):
-    model = Sequential()
-    
-    for layer in layers[:-1]:
-        model.add(LSTM(layer, input_shape=input_shape, return_sequences=True))
-        model.add(Activation('relu'))
-    model.add(LSTM(layers[-1], input_shape=input_shape))
-    model.add(Dense(8))
-    model.add(Activation('softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-    return model
-
 def main():
     # Fix random seed for reproducibility
     np.random.seed(7)
@@ -158,7 +144,7 @@ def main():
                     print("Iteration parameters:", data_type, layers, epochs, batch_size)
 
                     # Create and fit the LSTM network
-                    model = build_network(layers=layers, input_shape=(None,len(x_train[0][0])))
+                    model = get_model(layers=layers, input_shape=(None,len(x_train[0][0])))
                     #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
                     for _ in range(epochs):
                         for X, Y in zip(x_train, y_train):

@@ -9,7 +9,7 @@ Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Te
 2. Run `install.sh <directory in which you want the project to be installed>`
 
 ## Contributing
-At this stage, I don't even know if anyone is going to contribute. If by any chance you want to, you have to understand that I  care about code quality. There are three alternatives:
+At this stage, I don't even know if anyone is going to contribute. If by any chance you want to, you have to understand that I care about code quality. There are three alternatives:
 
 (a) You make a PR and your code quality is great, so it will be directly merged to the repo :)
 

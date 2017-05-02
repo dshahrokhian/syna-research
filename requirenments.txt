@@ -1,0 +1,5 @@
+numpy >= 1.12
+scipy >= 0.19
+tensorflow >= 1.0.0
+h5py >= 2.6
+keras >= 2.0
