@@ -6,5 +6,4 @@ OpenFace/
 opencv-3.1.0/
 **/__pycache__
 deepmotion/c3d/models/*
-!datasets/parse_dataset.sh
 !deepmotion/c3d/models/get_weights_and_mean.sh
