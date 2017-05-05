@@ -17,9 +17,8 @@ import math
 
 # DeepMotion imports
 from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout, Input
-
-# Data Loader imports
 from deepmotion.dataloader.ck_dataloader import load_CK_emotions, load_CK_videos
+
 
 backend = K.image_dim_ordering
 print("[Info] image_dim_order (from default ~/.keras/keras.json)={}".format(
@@ -171,7 +170,7 @@ def main():
     print("[Info] Loading model weights -- DONE!")
 
     print("[Info] Loading labels...")
-    labels_path = os.path.join(os.path.dirname(__file__), "../data/labels.txt")
+    labels_path = os.path.join(os.path.dirname(__file__), "../data/classification/labels.txt")
     with open(labels_path, 'r') as f:
         labels = [line.strip() for line in f.readlines()]
     print('Total labels: {}'.format(len(labels)))

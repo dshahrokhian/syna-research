@@ -8,6 +8,8 @@ Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Te
 
 2. Run `install.sh <directory in which you want the project to be installed>`
 
+3. Run `python setup.py install`
+
 ## Contributing
 At this stage, I don't even know if anyone is going to contribute. If by any chance you want to, you have to understand that I care about code quality. There are three alternatives:
 
@@ -17,11 +19,18 @@ At this stage, I don't even know if anyone is going to contribute. If by any cha
 
 (c) You make a PR and your code quality sucks ass, but you don't mind getting feedback. In the merge, I will say what I believe that can be changed, you make those changes, and we can all learn together and be happy forever :D 
 
-## References
-[OpenFace](https://github.com/TadasBaltrusaitis/OpenFace)
+## Open Source acknowledgements
 
-[Constrained Local Neural Fields for robust facial landmark detection in the wild](https://www.cl.cam.ac.uk/~tb346/pub/papers/iccv2013.pdf)
+[OpenFace](https://github.com/TadasBaltrusaitis/OpenFace)
 
 [C3D Keras](https://github.com/axon-research/c3d-keras)
 
+[Face Frontalization](https://github.com/ChrisYang/facefrontalisation)
+
+## References
+
+[Constrained Local Neural Fields for robust facial landmark detection in the wild](https://www.cl.cam.ac.uk/~tb346/pub/papers/iccv2013.pdf)
+
 [Learning Spatiotemporal Features with 3D Convolutional Networks](http://vlg.cs.dartmouth.edu/c3d/c3d_video.pdf)
+
+[Effective Face Frontalization in Unconstrained Images](http://www.openu.ac.il/home/hassner/projects/frontalize)

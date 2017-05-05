@@ -109,7 +109,6 @@ def get_normalized_landmarks(filename):
     
     return dict_landmarks
 
-
 def get_AUs(filename):
     """ 
     Extracts the Action Units out of an OpenFace feature's file.

@@ -76,17 +76,17 @@ def load_ck_data(openface_dir, emotion_dir, data_type='AUs', split=0.67):
         OpenFace train features, OpenFace test features, 
         CK+ train emotion labels, CK+ test emotion labels
     """
-    all_features = load_OpenFace_features(openface_dir, features=data_type)
-    all_emotions = load_CK_emotions(emotion_dir)
+    features = load_OpenFace_features(openface_dir, features=data_type)
+    labels = load_CK_emotions(emotion_dir)
 
-    features, labels = dicts2lists(all_features, all_emotions)
-    labels = to_categorical(labels)
+    # Convert to training structures
+    X, Y = dicts2lists(features, labels)
+    Y = to_categorical(Y)
 
     # Split into train and test sets
-    train_size = int(len(features) * split)
-    test_size = len(features) - train_size
-    x_train, x_test = np.array(features[0:train_size]), np.array(features[train_size:len(features)])
-    y_train, y_test = np.array(labels[0:train_size]), np.array(labels[train_size:len(labels)])
+    train_size = int(len(X) * split)
+    x_train, x_test = np.array(X[0:train_size]), np.array(X[train_size:len(X)])
+    y_train, y_test = np.array(Y[0:train_size]), np.array(Y[train_size:len(Y)])
 
     return x_train, x_test, y_train, y_test
 

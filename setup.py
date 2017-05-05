@@ -5,5 +5,5 @@ setup(
     version='0.1',
     description="Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Temporal Features.",
     url='https://github.com/dshahrokhian/deepmotion',
-    packages=['deepmotion', 'deepmotion/dataloader', 'deepmotion/c3d']
+    packages=['deepmotion', 'deepmotion/dataloader', 'deepmotion/c3d', 'deepmotion/frontalization']
 )

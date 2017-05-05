@@ -22,7 +22,8 @@ import dlib
 import pickle as pkl
 import time 
 from scipy import ndimage
-import copy 
+import copy
+import os
 
 def plot3d(p3ds):
     import matplotlib.pyplot as plt
@@ -113,7 +114,7 @@ class frontalizer():
         sumleft = np.sum(synth_front[:,0:mline])
         sumright = np.sum(synth_front[:,mline:])
         sum_diff = sumleft - sumright
-        print(sum_diff)
+        #print(sum_diff)
         if np.abs(sum_diff) > ACC_CONST:
             weights = np.zeros(sp_)
             if sum_diff > ACC_CONST:
@@ -138,17 +139,18 @@ class frontalizer():
 
 if __name__ == "__main__":
     ##to make sure you have dlib 
-    PATH_face_model = 'face_shape.dat'
+    PATH_face_model = os.path.join(os.path.dirname(__file__),  'face_shape.dat')
+    PATH_ref3d = os.path.join(os.path.dirname(__file__),  'ref3d.pkl')
     md_face = dlib.shape_predictor(PATH_face_model)
     face_det = dlib.get_frontal_face_detector()
-    fronter = frontalizer('ref3d.pkl')
+    fronter = frontalizer(PATH_ref3d)
     #________________model initialisation 
     #
 
     # test your image 
     img_name = '/home/dani/Downloads/test.jpg'#names[k]
     img = plt.imread(img_name)
-    facedets = face_det(img,1)
+    facedets = face_det(img[:,:,:3],1)
     for det in facedets:
         shape = md_face(img,det)
         p2d = np.asarray([(shape.part(n).x, shape.part(n).y,) for n in range(shape.num_parts)], np.float32)
