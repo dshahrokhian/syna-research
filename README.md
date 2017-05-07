@@ -6,9 +6,7 @@ Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Te
 ## Installation [Ubuntu 16.04 LTE]
 1. Run `sudo gedit /etc/apt/sources.list` and change the line `deb http://us.archive.ubuntu.com/ubuntu/ xenial main restricted` to `deb http://us.archive.ubuntu.com/ubuntu/ xenial main universe`
 
-2. Run `install.sh <directory in which you want the project to be installed>`
-
-3. Run `python setup.py install`
+2. Run `install.sh`
 
 ## Contributing
 At this stage, I don't even know if anyone is going to contribute. If by any chance you want to, you have to understand that I care about code quality. There are three alternatives:
@@ -19,7 +17,7 @@ At this stage, I don't even know if anyone is going to contribute. If by any cha
 
 (c) You make a PR and your code quality sucks ass, but you don't mind getting feedback. In the merge, I will say what I believe that can be changed, you make those changes, and we can all learn together and be happy forever :D 
 
-## Open Source acknowledgements
+## Open Source Acknowledgements
 
 [OpenFace](https://github.com/TadasBaltrusaitis/OpenFace)
 

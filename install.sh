@@ -3,8 +3,8 @@
 # Title: install.sh
 # Description: Install everything necessary for OpenFace to compile.
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
-# Date: 20170310
-# Version : 1.0
+# Date: 20170428
+# Version : 1.01
 # Usage: bash install.sh
 # NOTES: There are certain steps to be taken in the system before installing 
 #        via this script (refer to README): Run 
@@ -17,28 +17,22 @@
 set -e 
 set -o pipefail
 
-if [ $# -ne 1 ]
+if [ $# -ne 0 ]
   then
-    echo "Usage: install.sh <directory in which you want the project to be installed>"
+    echo "Usage: install.sh"
     exit 1
 fi
 
-DIRECTORY="$1"
-cd "$DIRECTORY"
-echo "Installation under ${DIRECTORY}"
-
 # Essential Dependencies
 echo "Installing Essential dependencies..."
-sudo apt-get update
-sudo apt-get install build-essential
-sudo apt-get install llvm
-
-sudo apt-get update
-sudo apt-get install clang-3.7 libc++-dev libc++abi-dev
-sudo apt-get install cmake
-sudo apt-get install libopenblas-dev liblapack-dev
-sudo apt-get install git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
-sudo apt-get install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev checkinstall
+sudo apt-get -y update
+sudo apt-get -y install build-essential
+sudo apt-get -y install llvm
+sudo apt-get -y install clang-3.7 libc++-dev libc++abi-dev
+sudo apt-get -y install cmake
+sudo apt-get -y install libopenblas-dev liblapack-dev
+sudo apt-get -y install git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev
+sudo apt-get -y install python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev checkinstall
 echo "Essential dependencies installed."
 
 # OpenCV Dependency
@@ -47,17 +41,20 @@ if [ -d "opencv-3.1.0" ]; then
   sudo rm -r "opencv-3.1.0"
 fi
 
+# OpenCV Dependency
+echo "Downloading OpenCV..."
 wget https://github.com/Itseez/opencv/archive/3.1.0.zip
 unzip 3.1.0.zip
-rm 3.1.0.zip
 cd opencv-3.1.0
-mkdir build
+mkdir -p build
 cd build
 echo "Installing OpenCV..."
 cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_SHARED_LIBS=OFF ..
 make -j4
 sudo make install
-cd "../.."
+cd ../..
+rm 3.1.0.zip
+sudo rm -r opencv-3.1.0
 echo "OpenCV installed."
 
 # Boost C++ Dependency
@@ -67,20 +64,15 @@ echo "Boost installed."
 
 # OpenFace installation
 echo "Downloading OpenFace..."
-if [ -d "OpenFace" ]; then
-  sudo rm -r "OpenFace"
-fi
-
 git clone https://github.com/TadasBaltrusaitis/OpenFace.git
 cd OpenFace
+echo "Installing OpenFace..."
 mkdir build
 cd build
-echo "Installing OpenFace..."
 cmake -D CMAKE_BUILD_TYPE=RELEASE ..
 make
 echo "OpenFace installed."
 
-# Installation test
-echo "Testing installation..."
-./bin/FaceLandmarkVid -f "../videos/changeLighting.wmv"
-echo "Installation tested."
+echo "Installing Python Module..."
+python setup.py install
+echo "Python Module installed."
