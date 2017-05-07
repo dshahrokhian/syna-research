@@ -18,7 +18,7 @@ import math
 # DeepMotion imports
 from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout, Input
 from deepmotion.dataloader.ck_dataloader import load_CK_emotions, load_CK_videos
-
+import train_utils
 
 backend = K.image_dim_ordering
 print("[Info] image_dim_order (from default ~/.keras/keras.json)={}".format(
@@ -31,6 +31,8 @@ clip_length = 16
 mean_dir = os.path.join(os.path.dirname(__file__), '../deepmotion/c3d/models/train01_16_128_171_mean.npy')
 mean_cube = np.load(mean_dir)
 mean_cube = np.transpose(mean_cube, (1, 2, 3, 0))
+
+frontalizer =  train_utils.face_frontalizer()
 
 def dicts2lists(dict_videos, dict_emotions):
     """ 
@@ -124,12 +126,15 @@ def parse_vid(filename):
         ret, img = cap.read()
         if not ret:
             break
+
+        img = np.array(frontalizer.frontalize(img)[0]) # For now, just interested in one face per sample.
+        
         vid.append(cv2.resize(img, (171, 128)))
     vid = np.array(vid, dtype=np.float32)
 
     n_frames = len(vid)
     n_clips = math.ceil(n_frames / clip_length)
-    
+
     pad = np.zeros_like(vid[0], dtype=np.float32)
 
     n_missing_frames = (clip_length - (n_frames % clip_length)) % clip_length
@@ -138,12 +143,14 @@ def parse_vid(filename):
         vid = np.concatenate((vid, patch), axis=0)
 
     # Subtract mean
-    for i in range(0, n_clips, clip_length):
+    for i in range(0, n_clips*clip_length, clip_length):
         vid[i:i + clip_length] -= mean_cube
+    # Should not be applied to inserted blank images
+    vid[-n_missing_frames:] += mean_cube[-n_missing_frames:]
 
-    # center crop
+    # center crop;
     vid = vid[:, 8:120, 30:142, :] # (l, h, w, c)
-
+    
     # Reshape into clips of length 'clip_length'
     vid = vid.reshape((n_clips, clip_length, 3, 112, 112))
 
