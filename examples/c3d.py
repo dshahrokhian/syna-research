@@ -139,6 +139,7 @@ def parse_vid(filename):
 
     n_missing_frames = (clip_length - (n_frames % clip_length)) % clip_length
     if n_missing_frames > 0:
+        # Insert mean images (They will become blank images after subtraction)
         patch = np.array([pad,]*n_missing_frames)
         vid = np.concatenate((vid, patch), axis=0)
 
@@ -146,7 +147,8 @@ def parse_vid(filename):
     for i in range(0, n_clips*clip_length, clip_length):
         vid[i:i + clip_length] -= mean_cube
     # Should not be applied to inserted blank images
-    vid[-n_missing_frames:] += mean_cube[-n_missing_frames:]
+    if n_missing_frames > 0:
+        vid[-n_missing_frames:] = np.sum([vid[-n_missing_frames:], mean_cube[-n_missing_frames:]], axis=0)
 
     # center crop;
     vid = vid[:, 8:120, 30:142, :] # (l, h, w, c)
