@@ -27,7 +27,8 @@ def _extract_columns(row, wanted_columns):
 
 def _extract_AU_activations(row):
     """ 
-    Extracts the Action Units out of a single line from OpenFace feature's file.
+    Extracts the Action Units Activations (Boolean 0 or 1) out of a single line
+    from OpenFace feature's file.
     
     Parameters
     ----------
@@ -142,7 +143,7 @@ def get_AU_activations(filename):
 
 def load_OpenFace_features(root_dirname, features='AUs'):
     """ 
-    Loads all the Action Units activations from the parsed CK+ or AFEW datasets. See
+    Loads all the features from the parsed CK+ or AFEW datasets. See
     (https://github.com/dshahrokhian/DeepMotion/blob/master/datasets/parse_dataset.sh)
     if you need to understand the parsed data directory structure.
 
@@ -154,7 +155,7 @@ def load_OpenFace_features(root_dirname, features='AUs'):
     Returns
     -------
     Dict
-        {Record identifier : {timestamp : {feature code : feature activation value}}}
+        {Record identifier : {timestamp : {feature code : feature value}}}
     """
     output={}
 
