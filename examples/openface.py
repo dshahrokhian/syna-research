@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas
 import math
 from keras.preprocessing import sequence
-from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import StratifiedKFold
 from keras.utils.np_utils import to_categorical
 from deepmotion.deepmotion_model import get_model
 
@@ -54,10 +54,10 @@ def dicts2lists(dict_features, dict_emotions):
             l_features.append(record_features)
             l_emotions.append(dict_emotions[record_id])
     
-    return l_features, l_emotions
+    return np.array(l_features), np.array(l_emotions)
 
 
-def load_ck_data(openface_dir, emotion_dir, data_type='AUs', split=0.67):
+def load_ck_data(openface_dir, emotion_dir, data_type='AUs'):
     """ 
     Extracts OpenFace Action Units features and CK+ Emotion labels,
     preserving the order (e.g. x_train[0] corresponds to the same sample as
@@ -68,27 +68,16 @@ def load_ck_data(openface_dir, emotion_dir, data_type='AUs', split=0.67):
     openface_dir : root directory of the parsed dataset with OpenFace
     emotion_dir : root directory of the CK+ dataset
     data_type : which features to load {AUs, AU_activations, 2Dlandmarks}
-    split : Training set split ratio [0,1] (1-split will be returned as Testing set)
     
     Returns
     -------
-    List, List, List, List
-        OpenFace train features, OpenFace test features, 
-        CK+ train emotion labels, CK+ test emotion labels
+    List, List
+        OpenFace features, CK+ emotion labels
     """
     features = load_OpenFace_features(openface_dir, features=data_type)
     labels = load_CK_emotions(emotion_dir)
 
-    # Convert to training structures
-    X, Y = dicts2lists(features, labels)
-    Y = to_categorical(Y)
-
-    # Split into train and test sets
-    train_size = int(len(X) * split)
-    x_train, x_test = np.array(X[0:train_size]), np.array(X[train_size:len(X)])
-    y_train, y_test = np.array(Y[0:train_size]), np.array(Y[train_size:len(Y)])
-
-    return x_train, x_test, y_train, y_test
+    return dicts2lists(features, labels)
 
 def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
     """ 
@@ -127,13 +116,17 @@ def main():
     # Fix random seed for reproducibility
     np.random.seed(7)
     
+    # K-fold stratified cross-validation
+    n_splits = 10
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True)
+
     # Load the datasets
-    features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+parsed")
+    features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+norm")
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     
-    for data_type in ['AU_activations']:
-        x_train, x_test, y_train, y_test = load_ck_data(features_dir, labels_dir, data_type=data_type)
-        
+    for data_type in ['AUs', 'AU_activations', '2Dlandmarks']:
+        features, labels = load_ck_data(features_dir, labels_dir, data_type=data_type)
+
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
         #x_train = sequence.pad_sequences(x_train, maxlen=maxlen, dtype='float32')
@@ -143,23 +136,30 @@ def main():
                 for batch_size in [1]:
                     print("Iteration parameters:", data_type, layers, epochs, batch_size)
 
-                    # Create and fit the LSTM network
-                    model = get_model(layers=layers, input_shape=(None,len(x_train[0][0])))
-                    #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
-                    for _ in range(epochs):
-                        for X, Y in zip(x_train, y_train):
-                            model.train_on_batch(np.array([X]), np.array([Y]))
+                    scores = []
+                    for train_index, test_index in skf.split(features, labels):
+                        x_train, x_test = features[train_index], features[test_index]
+                        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
 
-                        # Final evaluation of the model
-                        acc = 0
-                        samples = 0
-                        for X, Y in zip(x_test, y_test):
-                            acc += model.test_on_batch(np.array([X]), np.array([Y]))[1]
-                            samples += 1
-                        print("Accuracy: %.2f%%" % (acc/samples*100))
+                        # Create and fit the LSTM network
+                        model = get_model(layers=layers, input_shape=(None,len(x_train[0][0])))
+                        #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
+                        for _ in range(epochs):
+                            for X, Y in zip(x_train, y_train):
+                                model.train_on_batch(np.array([X]), np.array([Y]))
 
-                    #scores = model.evaluate(x_test, y_test, verbose=0)
-                    #print("Accuracy: %.2f%%" % (scores[1]*100))
+                            # Final evaluation of the model
+                            acc = 0
+                            samples = 0
+                            for X, Y in zip(x_test, y_test):
+                                acc += model.test_on_batch(np.array([X]), np.array([Y]))[1]
+                                samples += 1
+                            acc = acc/samples*100
+                            print("Accuracy: %.2f%%" % (acc))
+                        scores.append(acc)
+                    print("%.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
+                        #scores = model.evaluate(x_test, y_test, verbose=0)
+                        #print("Accuracy: %.2f%%" % (scores[1]*100))
                     
 if __name__ == "__main__":
     main()
