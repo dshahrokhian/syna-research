@@ -3,3 +3,4 @@ scipy >= 0.19
 tensorflow >= 1.0.0
 h5py >= 2.6
 keras >= 2.0
+bayesian-optimization >= 0.4.0

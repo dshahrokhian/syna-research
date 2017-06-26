@@ -4,7 +4,7 @@
 DeepMotion - Example with OpenFace network
 ===============================================================================
 """
-# Author: Daniyal Shahrokhian <daniyal@kth.se>
+__author__ = "Daniyal Shahrokhian <daniyal@kth.se>"
 
 # Neural Network imports
 import os
@@ -15,12 +15,15 @@ import math
 from keras.preprocessing import sequence
 from sklearn.model_selection import StratifiedKFold
 from keras.utils.np_utils import to_categorical
-from deepmotion.deepmotion_model import get_model
+import deepmotion.deepmotion_model as deepmotion
+from bayes_opt import BayesianOptimization
 
 # Data Loader imports
 from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
 from deepmotion.dataloader.ck_dataloader import load_CK_emotions
 from deepmotion.dataloader.afew_dataloader import load_AFEW_emotions
+
+features, labels = None, None
 
 def dicts2lists(dict_features, dict_emotions):
     """ 
@@ -112,54 +115,64 @@ def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
 
     return x_train, x_test, y_train, y_test
 
-def main():
-    # Fix random seed for reproducibility
-    np.random.seed(7)
-    
-    # K-fold stratified cross-validation
-    n_splits = 10
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True)
+def adam_evaluate(neurons, epochs, batch_size):
+    # The Gaussian Process' space is continous, so we need to round values
+    neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
 
+    # K-fold stratified cross-validation
+    skf = StratifiedKFold(n_splits=10, shuffle=True)
+
+    scores = []
+    for train_index, test_index in skf.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
+
+        # Create and fit the LSTM network
+        model = deepmotion.get_model(layers=[neurons], input_shape=(None,len(x_train[0][0])))
+        #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
+        for _ in range(epochs):
+            for X, Y in zip(x_train, y_train):
+                model.train_on_batch(np.array([X]), np.array([Y]))
+
+            # Final evaluation of the model
+            accuracies = []
+            for X, Y in zip(x_test, y_test):
+                accuracies.append(model.test_on_batch(np.array([X]), np.array([Y]))[1])
+            acc = np.mean(accuracies)
+            #print("Accuracy: %.2f%%" % (acc*100))
+        scores.append(acc)
+    print("%.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
+        #scores = model.evaluate(x_test, y_test, verbose=0)
+        #print("Accuracy: %.2f%%" % (scores[1]*100))
+
+    return -np.mean(scores)
+
+def main():
     # Load the datasets
     features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+norm")
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     
     for data_type in ['AUs', 'AU_activations', '2Dlandmarks']:
+        print("Using " + data_type)
+        # Fix random seed for reproducibility
+        np.random.seed(7)
+        
+        global features, labels
         features, labels = load_ck_data(features_dir, labels_dir, data_type=data_type)
 
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
         #x_train = sequence.pad_sequences(x_train, maxlen=maxlen, dtype='float32')
         #x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
-        for layers in [[100], [50,50], [15,30], [30,15], [100,100], [50,80], [80,50], [20,20,20], [100,100,100], [50,50,50], [20,50,100], [100,50,20]]:
-            for epochs in [3, 6, 10, 20]:
-                for batch_size in [1]:
-                    print("Iteration parameters:", data_type, layers, epochs, batch_size)
 
-                    scores = []
-                    for train_index, test_index in skf.split(features, labels):
-                        x_train, x_test = features[train_index], features[test_index]
-                        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
-
-                        # Create and fit the LSTM network
-                        model = get_model(layers=layers, input_shape=(None,len(x_train[0][0])))
-                        #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
-                        for _ in range(epochs):
-                            for X, Y in zip(x_train, y_train):
-                                model.train_on_batch(np.array([X]), np.array([Y]))
-
-                            # Final evaluation of the model
-                            acc = 0
-                            samples = 0
-                            for X, Y in zip(x_test, y_test):
-                                acc += model.test_on_batch(np.array([X]), np.array([Y]))[1]
-                                samples += 1
-                            acc = acc/samples*100
-                            print("Accuracy: %.2f%%" % (acc))
-                        scores.append(acc)
-                    print("%.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
-                        #scores = model.evaluate(x_test, y_test, verbose=0)
-                        #print("Accuracy: %.2f%%" % (scores[1]*100))
+        # Bayesian Hyperparameter Optimization
+        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (20, 100),
+                                                    'epochs': (1, 20),
+                                                    'batch_size': (1, 1)
+                                                    })
+        hyper_opt.maximize()
+        
+        print("Best settings: " + str(hyper_opt.res['max']))        
                     
 if __name__ == "__main__":
-    main()
+    main()  
