@@ -8,15 +8,18 @@ DeepMotion - LSTM Neural Network integration for OpenFace
 
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Activation
+from keras.optimizers import Adam
 
-def get_model(summary=False, layers=[100], input_shape=(10, 64)):
+def get_model(summary=False, layers=[100], lr=0.001, lr_decay=0.0, input_shape=(10, 64)):
     """ 
     Returns the Keras model of the network.
     
     Parameters
     ----------
     summary : print model summary
-    layers : list with the number of LSTM units per layer 
+    layers : list with the number of LSTM units per layer
+    lr : learning rate
+    lr : learning rate decay
     input_shape : input shape to the network
         
     Returns
@@ -32,7 +35,9 @@ def get_model(summary=False, layers=[100], input_shape=(10, 64)):
     model.add(LSTM(layers[-1], input_shape=input_shape))
     model.add(Dense(8))
     model.add(Activation('softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    
+    adam_opt = Adam(lr=lr, decay=lr_decay)
+    model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
 
     if summary:
         print(model.summary())

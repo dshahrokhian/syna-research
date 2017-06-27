@@ -14,6 +14,7 @@ import pandas
 import math
 from keras.preprocessing import sequence
 from sklearn.model_selection import StratifiedKFold
+from sklearn import preprocessing
 from keras.utils.np_utils import to_categorical
 import deepmotion.deepmotion_model as deepmotion
 from bayes_opt import BayesianOptimization
@@ -115,8 +116,8 @@ def load_afew_data(openface_dir, emotion_dir, data_type='AUs'):
 
     return x_train, x_test, y_train, y_test
 
-def adam_evaluate(neurons, epochs, batch_size):
-    # The Gaussian Process' space is continous, so we need to round values
+def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
+    # The Gaussian Process' space is continous, so we need to round these values
     neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
 
     # K-fold stratified cross-validation
@@ -128,24 +129,24 @@ def adam_evaluate(neurons, epochs, batch_size):
         y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
 
         # Create and fit the LSTM network
-        model = deepmotion.get_model(layers=[neurons], input_shape=(None,len(x_train[0][0])))
+        model = deepmotion.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay input_shape=(None,len(x_train[0][0])))
         #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=batch_size, verbose=2)
         for _ in range(epochs):
             for X, Y in zip(x_train, y_train):
                 model.train_on_batch(np.array([X]), np.array([Y]))
 
-            # Final evaluation of the model
-            accuracies = []
-            for X, Y in zip(x_test, y_test):
-                accuracies.append(model.test_on_batch(np.array([X]), np.array([Y]))[1])
-            acc = np.mean(accuracies)
-            #print("Accuracy: %.2f%%" % (acc*100))
+        # Final evaluation of the model
+        accuracies = []
+        for X, Y in zip(x_test, y_test):
+            accuracies.append(model.test_on_batch(np.array([X]), np.array([Y]))[1])
+        acc = np.mean(accuracies)
+        #print("Accuracy: %.2f%%" % (acc*100))
         scores.append(acc)
-    print("%.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
+    print("Accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
         #scores = model.evaluate(x_test, y_test, verbose=0)
         #print("Accuracy: %.2f%%" % (scores[1]*100))
 
-    return -np.mean(scores)
+    return np.mean(scores)
 
 def main():
     # Load the datasets
@@ -159,6 +160,7 @@ def main():
         
         global features, labels
         features, labels = load_ck_data(features_dir, labels_dir, data_type=data_type)
+        features = preprocessing.scale(features) # Gaussian Normalization
 
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
@@ -168,6 +170,8 @@ def main():
         # Bayesian Hyperparameter Optimization
         hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (20, 100),
                                                     'epochs': (1, 20),
+                                                    'lr': (0.0001, 0.01),
+                                                    'lr_decay': (0.0, 1e-4),
                                                     'batch_size': (1, 1)
                                                     })
         hyper_opt.maximize()
