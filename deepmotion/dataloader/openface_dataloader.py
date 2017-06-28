@@ -23,7 +23,7 @@ def _extract_columns(row, wanted_columns):
     Dict
         {column : value}
     """
-    return {col : row[col] for col in wanted_columns if col in row}
+    return {col : float(row[col]) for col in wanted_columns if col in row}
 
 def _extract_AU_activations(row):
     """ 
