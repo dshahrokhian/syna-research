@@ -19,9 +19,9 @@ def get_model(summary=False, layers=[100], lr=0.001, lr_decay=0.0, input_shape=(
     summary : print model summary
     layers : list with the number of LSTM units per layer
     lr : learning rate
-    lr : learning rate decay
+    lr_decay : learning rate decay
     input_shape : input shape to the network
-        
+    
     Returns
     -------
     Sequential

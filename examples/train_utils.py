@@ -12,6 +12,7 @@ import scipy.misc as sm
 import matplotlib.pyplot as plt
 import numpy as np
 from deepmotion.frontalization import facefrontal
+from sklearn import preprocessing
 
 class face_frontalizer():
     """
@@ -58,6 +59,35 @@ class face_frontalizer():
             frontalized_faces.append(sm.toimage(np.round(symfront).astype(np.uint8)))
         
         return frontalized_faces
+
+def normalize(X, axis=0):
+    """ 
+    Given a list of samples, centers to the mean and component wise scales to
+    unit variance.
+
+    Parameters
+    ----------
+    X : list of samples
+    axis : dimension to normalize
+
+    Returns
+    -------
+    List
+        Normalized list of samples
+    """
+    # Flatten the array and apply scaling
+    flat_X = np.concatenate(X, axis=axis)
+    flat_X = preprocessing.scale(flat_X)
+
+    # Convert to original shape
+    i, j = 0, 0
+    while j < len(flat_X):
+        X[i] = flat_X[j:j+len(X[i])]
+
+        j += len(X[i])
+        i += 1
+    
+    return X
 
 if __name__ == "__main__":
     img = plt.imread('/home/dani/Downloads/pic3.jpg')
