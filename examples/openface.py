@@ -26,6 +26,9 @@ from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
 from deepmotion.dataloader.ck_dataloader import load_CK_emotions
 from deepmotion.dataloader.afew_dataloader import load_AFEW_emotions
 import train_utils
+import io_utils
+
+output_filename = 'results.csv'
 
 features, labels = None, None
 
@@ -118,13 +121,14 @@ def load_afew_data(openface_dir, emotion_dir, feature_type='AUs'):
     return x_train, x_test, y_train, y_test
 
 def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
-    print("New evaluation")
-    print(datetime.datetime.now())
     # The Gaussian Process' space is continous, so we need to round these values
     neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
 
     # K-fold stratified cross-validation
     skf = StratifiedKFold(n_splits=10, shuffle=True)
+
+    # For visualization purposes, we will report training results 100 times.
+    report_freq = epochs*len(features)/100
 
     scores = []
     for train_index, test_index in skf.split(features, labels):
@@ -133,23 +137,33 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
 
         # Create and fit the LSTM network
         model = deepmotion.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
-
-        for _ in range(epochs):
+        i = 0
+        for epoch in range(epochs):
             for X, Y in zip(x_train, y_train):
                 model.train_on_batch(np.array([X]), np.array([Y]))
 
+                if i % report_freq == 0:
+                    train_evals = train_utils.evaluate(model, x_train, y_train)
+                    test_evals = train_utils.evaluate(model, x_test, y_test)
+
+                    io_utils.append_csv(output_filename, [epoch, 
+                                                        np.mean([x[0] for x in train_evals]), 
+                                                        np.mean([x[0] for x in test_evals]), 
+                                                        np.mean([x[1] for x in train_evals])*100, 
+                                                        np.mean([x[1] for x in test_evals])]*100)
+                i += 1
+        
         # Final evaluation of the model
-        accuracies = []
-        for X, Y in zip(x_test, y_test):
-            accuracies.append(model.test_on_batch(np.array([X]), np.array([Y]))[1])
-        
-        acc = np.mean(accuracies)
-        scores.append(acc)
-        
-    print("Accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(scores), np.std(scores)))
-    print(datetime.datetime.now())
+        evals = train_utils.evaluate(model, x_test, y_test)
+        scores.append(evals)
+
+    losses = [x[0] for x in scores]
+    accuracies = [x[1]*100 for x in scores]
+
+    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies), np.std(accuracies)))
+    print("Test loss and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(losses), np.std(losses)))
     
-    return np.mean(scores)
+    return np.mean(losses)
 
 def main():
     # Load the datasets
@@ -172,19 +186,20 @@ def main():
         #x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
 
         # Bayesian Hyperparameter Optimization
-        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (20, 100),
+        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (20, 200),
                                                     'epochs': (1, 20),
                                                     'lr': (0.0001, 0.01),
                                                     'lr_decay': (0.0, 1e-4),
                                                     'batch_size': (1, 1)
                                                     })
-        print("start")
-        print(datetime.datetime.now())
         hyper_opt.maximize()
-        print("finish")
-        print(datetime.datetime.now())
         
         print("Best hyperparameter settings: " + str(hyper_opt.res['max']))        
                     
 if __name__ == "__main__":
+    io_utils.append_csv(output_filename, ['epoch', 
+                                        'train_loss', 
+                                        'test_loss', 
+                                        'train_acc', 
+                                        'test_acc'])
     main()

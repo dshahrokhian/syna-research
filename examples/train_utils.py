@@ -89,6 +89,13 @@ def normalize(X, axis=0):
     
     return X
 
+def evaluate(model, features, labels):
+    scores = []
+    for X, Y in zip(features, labels):
+        scores.append(model.test_on_batch(np.array([X]), np.array([Y])))
+    
+    return scores
+
 if __name__ == "__main__":
     img = plt.imread('/home/dani/Downloads/pic3.jpg')
     frontalizer = face_frontalizer()
