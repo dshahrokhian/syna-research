@@ -6,10 +6,10 @@ DeepMotion - Example with OpenFace network
 """
 __author__ = "Daniyal Shahrokhian <daniyal@kth.se>"
 
-# Neural Network imports
 import os
 import datetime
 
+# Neural Network imports
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas
@@ -21,51 +21,16 @@ from keras.utils.np_utils import to_categorical
 import deepmotion.deepmotion_model as deepmotion
 from bayes_opt import BayesianOptimization
 
-# Data Loader imports
+# Data imports
 from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
 from deepmotion.dataloader.ck_dataloader import load_CK_emotions
-from deepmotion.dataloader.afew_dataloader import load_AFEW_emotions
 import train_utils
 import io_utils
 
 output_filename = 'results.csv'
+openface_feature = ''
 
 features, labels = None, None
-
-def dicts2lists(dict_features, dict_emotions):
-    """ 
-    Converts the dictionaries of the dataloaders into lists, containing only
-    records with identifiers present in both dictionaries, and ordered by 
-    record identifiers.
-    
-    Parameters
-    ----------
-    dict_features : {Record identifier : 
-                            {timestamp :    
-                                {feature code : feature value}
-                            }
-                        }
-    dict_emotions : {Record identifier : Emotion identifier}
-    
-    Returns
-    -------
-    List, List
-        [records, samples, features], [emotion identifiers]
-    """
-    l_features = []
-    l_emotions = []
-
-    for record_id, values in dict_features.items():
-        if record_id in dict_emotions:
-            record_features = []
-            for timestamp in sorted(values.keys()):
-                record_features.append(list(values[timestamp].values()))
-            
-            l_features.append(record_features)
-            l_emotions.append(dict_emotions[record_id])
-    
-    return np.array(l_features), np.array(l_emotions)
-
 
 def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
     """ 
@@ -87,38 +52,7 @@ def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
     features = load_OpenFace_features(openface_dir, features=feature_type)
     labels = load_CK_emotions(emotion_dir)
 
-    return dicts2lists(features, labels)
-
-def load_afew_data(openface_dir, emotion_dir, feature_type='AUs'):
-    """ 
-    Extracts OpenFace Action Units features and AFEW Emotion labels,
-    preserving the order (e.g. x_train[0] corresponds to the same sample as
-    y_train[0]).
-
-    Parameters
-    ----------
-    openface_dir : root directory of the parsed dataset with OpenFace
-    emotion_dir : root directory of the AFEW dataset
-    feature_type : which features to load {AUs, AU_activations, 2Dlandmarks}
-    
-    Returns
-    -------
-    List, List, List, List
-        OpenFace train features, OpenFace test features, 
-        AFEW train emotion labels, AFEW test emotion labels
-    """
-    train_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Train'), features=feature_type )
-    train_emotions = load_AFEW_emotions(emotion_dir, set='Train')
-    train_features, train_labels = dicts2lists(train_action_units, train_emotions)
-
-    test_action_units = load_OpenFace_features( os.path.join(openface_dir, 'Val'), features=feature_type )
-    test_emotions = load_AFEW_emotions(emotion_dir, set='Val')
-    test_features, test_labels = dicts2lists(test_action_units, test_emotions)
-
-    x_train, x_test = np.array(train_features), np.array(test_features)
-    y_train, y_test = np.array(train_labels), np.array(test_labels)
-
-    return x_train, x_test, y_train, y_test
+    return train_utils.dicts2lists(features, labels)    
 
 def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
     # The Gaussian Process' space is continous, so we need to round these values
@@ -128,7 +62,7 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
     skf = StratifiedKFold(n_splits=10, shuffle=True)
 
     # For visualization purposes, we will report training results 100 times.
-    report_freq = epochs*len(features)/100
+    report_freq = epochs*len(features)/90
 
     scores = []
     for train_index, test_index in skf.split(features, labels):
@@ -146,22 +80,25 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
                     train_evals = train_utils.evaluate(model, x_train, y_train)
                     test_evals = train_utils.evaluate(model, x_test, y_test)
 
-                    io_utils.append_csv(output_filename, [epoch, 
+                    io_utils.append_csv(output_filename, [openface_feature,
+                                                        epoch, 
                                                         np.mean([x[0] for x in train_evals]), 
                                                         np.mean([x[0] for x in test_evals]), 
                                                         np.mean([x[1] for x in train_evals])*100, 
-                                                        np.mean([x[1] for x in test_evals])]*100)
+                                                        np.mean([x[1] for x in test_evals])*100])
                 i += 1
         
         # Final evaluation of the model
         evals = train_utils.evaluate(model, x_test, y_test)
-        scores.append(evals)
+        losses = [x[0] for x in evals]
+        accuracies = [x[1]*100 for x in evals]
+        scores.append([np.mean(losses), np.mean(accuracies)])
 
     losses = [x[0] for x in scores]
     accuracies = [x[1]*100 for x in scores]
 
-    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies), np.std(accuracies)))
     print("Test loss and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies), np.std(accuracies)))
     
     return np.mean(losses)
 
@@ -171,14 +108,15 @@ def main():
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     
     for feature_type in ['AU_activations', 'AUs', '2Dlandmarks']:
-        print("Using " + feature_type)
+        global openface_feature
+        openface_feature = feature_type
         
         # Fix random seed for reproducibility
         np.random.seed(7)
         
         global features, labels
         features, labels = load_ck_data(features_dir, labels_dir, feature_type=feature_type)
-        features = train_utils.normalize(features) # Input normalization
+        features = train_utils.normalize(features)
 
         # Normalize length with zero-padding
         #maxlen = 71 # Maximum frames of a record from the Cohn-Kanade dataset
@@ -186,7 +124,7 @@ def main():
         #x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
 
         # Bayesian Hyperparameter Optimization
-        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (20, 200),
+        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (40, 200),
                                                     'epochs': (1, 20),
                                                     'lr': (0.0001, 0.01),
                                                     'lr_decay': (0.0, 1e-4),
@@ -197,7 +135,8 @@ def main():
         print("Best hyperparameter settings: " + str(hyper_opt.res['max']))        
                     
 if __name__ == "__main__":
-    io_utils.append_csv(output_filename, ['epoch', 
+    io_utils.append_csv(output_filename, ['feature_type',
+                                        'epoch', 
                                         'train_loss', 
                                         'test_loss', 
                                         'train_acc', 

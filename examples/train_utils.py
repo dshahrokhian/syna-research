@@ -90,11 +90,59 @@ def normalize(X, axis=0):
     return X
 
 def evaluate(model, features, labels):
+    """ 
+    Evaluates the prediction performance of a given model.
+    
+    Parameters
+    ----------
+    model : predictive model to evaluate
+    features : input data to the model
+    labels : ground truth
+    
+    Returns
+    -------
+    List
+        [model loss, model accuracy]
+    """
     scores = []
     for X, Y in zip(features, labels):
         scores.append(model.test_on_batch(np.array([X]), np.array([Y])))
     
     return scores
+
+def dicts2lists(dict_features, dict_emotions):
+    """ 
+    Converts the dictionaries of the dataloaders into lists, containing only
+    records with identifiers present in both dictionaries, and ordered by 
+    record identifiers.
+    
+    Parameters
+    ----------
+    dict_features : {Record identifier : 
+                            {timestamp :    
+                                {feature code : feature value}
+                            }
+                        }
+    dict_emotions : {Record identifier : Emotion identifier}
+    
+    Returns
+    -------
+    List, List
+        [records, samples, features], [emotion identifiers]
+    """
+    l_features = []
+    l_emotions = []
+
+    for record_id, values in dict_features.items():
+        if record_id in dict_emotions:
+            record_features = []
+            for timestamp in sorted(values.keys()):
+                record_features.append(list(values[timestamp].values()))
+            
+            l_features.append(record_features)
+            l_emotions.append(dict_emotions[record_id])
+    
+    return np.array(l_features), np.array(l_emotions)
 
 if __name__ == "__main__":
     img = plt.imread('/home/dani/Downloads/pic3.jpg')
