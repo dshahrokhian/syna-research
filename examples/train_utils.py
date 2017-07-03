@@ -110,6 +110,26 @@ def evaluate(model, features, labels):
     
     return scores
 
+def predict(model, features):
+    """ 
+    Given a model and a set of input features, returns the predictions.
+    
+    Parameters
+    ----------
+    model : predictive model to evaluate
+    features : input data to the model
+
+    Returns
+    -------
+    List
+        [predictions]
+    """
+    predictions = []
+    for X in features:
+        predictions.append(model.predict_on_batch(np.array([X])))
+    
+    return predictions
+
 def dicts2lists(dict_features, dict_emotions):
     """ 
     Converts the dictionaries of the dataloaders into lists, containing only

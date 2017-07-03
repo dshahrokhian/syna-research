@@ -17,6 +17,7 @@ import math
 from keras.preprocessing import sequence
 from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
+from sklearn.metrics import confusion_matrix
 from keras.utils.np_utils import to_categorical
 import deepmotion.deepmotion_model as deepmotion
 from bayes_opt import BayesianOptimization
@@ -27,9 +28,7 @@ from deepmotion.dataloader.ck_dataloader import load_CK_emotions
 import train_utils
 import io_utils
 
-output_filename = 'results.csv'
 openface_feature = ''
-
 features, labels = None, None
 
 def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
@@ -54,23 +53,31 @@ def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
 
     return train_utils.dicts2lists(features, labels)    
 
-def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
-    # The Gaussian Process' space is continous, so we need to round these values
-    neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
+def report_metrics(output_filename, hyperparams):
+    io_utils.append_csv(output_filename, ['feature_type',
+                                        'epoch', 
+                                        'train_loss', 
+                                        'test_loss', 
+                                        'train_acc', 
+                                        'test_acc'])
+
+    # The Gaussian Process' space is continous, so we need to round some values
+    neurons, epochs, batch_size = map(lambda x: int(round(x)), 
+        (hyperparams['neurons'], hyperparams['epochs'], hyperparams['batch_size']))
 
     # K-fold stratified cross-validation
     skf = StratifiedKFold(n_splits=10, shuffle=True)
 
-    # For visualization purposes, we will report training results 100 times.
-    report_freq = epochs*len(features)/90
-
-    scores = []
+    scores, y_true, y_pred = [], [], []
     for train_index, test_index in skf.split(features, labels):
         x_train, x_test = features[train_index], features[test_index]
         y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
 
+        # For visualization purposes, we will report training metrics 100 times.
+        report_freq = int(epochs*len(x_train)/100)
+
         # Create and fit the LSTM network
-        model = deepmotion.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
+        model = deepmotion.get_model(layers=[neurons], lr=hyperparams['lr'], lr_decay=hyperparams['lr_decay'], input_shape=(None,len(x_train[0][0])))
         i = 0
         for epoch in range(epochs):
             for X, Y in zip(x_train, y_train):
@@ -91,16 +98,51 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
         # Final evaluation of the model
         evals = train_utils.evaluate(model, x_test, y_test)
         losses = [x[0] for x in evals]
-        accuracies = [x[1]*100 for x in evals]
+        accuracies = [x[1] for x in evals]
+        scores.append([np.mean(losses), np.mean(accuracies)])
+
+        # Store predictions and ground truths
+        y_pred.extend(train_utils.predict(x_test))
+        y_true.extend(y_test)
+
+    losses = [x[0] for x in scores]
+    accuracies = [x[1] for x in scores]
+
+    print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies)*100, np.std(accuracies)*100))
+    print(confusion_matrix(y_true, y_pred))
+
+def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
+    # The Gaussian Process' space is continous, so we need to round some values
+    neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
+
+    # K-fold stratified cross-validation
+    skf = StratifiedKFold(n_splits=10, shuffle=True)
+
+    scores = []
+    for train_index, test_index in skf.split(features, labels):
+        x_train, x_test = features[train_index], features[test_index]
+        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index]) 
+
+        # Create and fit the LSTM network
+        model = deepmotion.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
+        for _ in range(epochs):
+            for X, Y in zip(x_train, y_train):
+                model.train_on_batch(np.array([X]), np.array([Y]))
+        
+        # Final evaluation of the model
+        evals = train_utils.evaluate(model, x_test, y_test)
+        losses = [x[0] for x in evals]
+        accuracies = [x[1] for x in evals]
         scores.append([np.mean(losses), np.mean(accuracies)])
 
     losses = [x[0] for x in scores]
-    accuracies = [x[1]*100 for x in scores]
+    accuracies = [x[1] for x in scores]
 
-    print("Test loss and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(losses), np.std(losses)))
-    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies), np.std(accuracies)))
-    
-    return np.mean(losses)
+    print("Test loss and Standard dev: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies)*100, np.std(accuracies)*100))
+
+    return np.mean(accuracies)
 
 def main():
     # Load the datasets
@@ -125,20 +167,16 @@ def main():
 
         # Bayesian Hyperparameter Optimization
         hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (40, 200),
-                                                    'epochs': (1, 20),
-                                                    'lr': (0.0001, 0.01),
+                                                    'epochs': (5, 40),
+                                                    'lr': (0.0005, 0.005),
                                                     'lr_decay': (0.0, 1e-4),
                                                     'batch_size': (1, 1)
                                                     })
         hyper_opt.maximize()
+        optimal = hyper_opt.res['max']
         
-        print("Best hyperparameter settings: " + str(hyper_opt.res['max']))        
-                    
+        print("Best hyperparameter settings: " + str(optimal))
+        report_metrics('results.csv', optimal)      
+        
 if __name__ == "__main__":
-    io_utils.append_csv(output_filename, ['feature_type',
-                                        'epoch', 
-                                        'train_loss', 
-                                        'test_loss', 
-                                        'train_acc', 
-                                        'test_acc'])
     main()
