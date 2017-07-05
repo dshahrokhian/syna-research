@@ -14,6 +14,7 @@ import keras.backend as K
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing import sequence
 import math
+import datetime
 
 # DeepMotion imports
 from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout, Input
@@ -46,6 +47,7 @@ def dicts2lists(dict_videos, dict_emotions):
     dict_emotions : {Record identifier : Emotion identifier}
     
     Returns
+
     -------
     List, List
         [videp paths], [emotion identifiers]
@@ -102,7 +104,7 @@ def get_features_model(c3d_model):
 
     return c3d_model
 
-def get_temporal_model(layers=[100]):
+def get_temporal_model(layers=[512]):
 
     input_features = Input(batch_shape=(1, None, 4096, ), name='features')
     input_normalized = BatchNormalization(name='normalization')(input_features)

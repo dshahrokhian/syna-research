@@ -60,6 +60,24 @@ class face_frontalizer():
         
         return frontalized_faces
 
+def class_labels(filename):
+    """ 
+    Returns the list of class labels from a file (one class per line)
+
+    Parameters
+    ----------
+    filename : path to the file containing the class labels
+
+    Returns
+    -------
+    List
+        Class labels
+    """
+    with open(labels_path, 'r') as f:
+        labels = [line.strip() for line in f.readlines()]
+    
+    return labels
+
 def normalize(X, axis=0):
     """ 
     Given a list of samples, centers to the mean and component wise scales to
@@ -122,11 +140,11 @@ def predict(model, features):
     Returns
     -------
     List
-        [predictions]
+        Predictions
     """
     predictions = []
     for X in features:
-        predictions.append(model.predict_on_batch(np.array([X])))
+        predictions.append(np.argmax(model.predict_on_batch(np.array([X]))))
     
     return predictions
 

@@ -95,12 +95,12 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
     evals = train_utils.evaluate(model, x_test, y_test)
 
     losses = [x[0] for x in evals]
-    accuracies = [x[1]*100 for x in evals]
+    accuracies = [x[1] for x in evals]
 
-    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies), np.std(accuracies)))
-    print("Test loss and Standard dev: %.2f%% (+/- %.2f%%)" % (np.mean(losses), np.std(losses)))
+    print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies)*100, np.std(accuracies)*100))
     
-    return np.mean(losses)
+    return np.mean(accuracies)
 
 def main():
     # Load the datasets

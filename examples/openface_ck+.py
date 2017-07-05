@@ -17,7 +17,7 @@ import math
 from keras.preprocessing import sequence
 from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
-from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 from keras.utils.np_utils import to_categorical
 import deepmotion.deepmotion_model as deepmotion
 from bayes_opt import BayesianOptimization
@@ -30,6 +30,8 @@ import io_utils
 
 openface_feature = ''
 features, labels = None, None
+
+class_labels_filename = os.path.join(os.path.dirname(__file__), "../data/classification/labels.txt")
 
 def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
     """ 
@@ -110,7 +112,8 @@ def report_metrics(output_filename, hyperparams):
 
     print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
     print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)" % (np.mean(accuracies)*100, np.std(accuracies)*100))
-    print(confusion_matrix(y_true, y_pred))
+    print(metrics.confusion_matrix(y_true, y_pred))
+    print(metrics.classification_report(true_classes, predicted_classes, target_names=train_utils.class_labels(class_labels_filename)))
 
 def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
     # The Gaussian Process' space is continous, so we need to round some values
@@ -176,7 +179,7 @@ def main():
         optimal = hyper_opt.res['max']
         
         print("Best hyperparameter settings: " + str(optimal))
-        report_metrics('results.csv', optimal)      
+        report_metrics('results.csv', optimal['max_params'])
         
 if __name__ == "__main__":
     main()
