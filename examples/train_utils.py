@@ -11,7 +11,7 @@ import dlib
 import scipy.misc as sm
 import matplotlib.pyplot as plt
 import numpy as np
-from deepmotion.frontalization import facefrontal
+import  deepmotion.frontalization.facefrontal
 from sklearn import preprocessing
 
 class face_frontalizer():
@@ -73,7 +73,7 @@ def class_labels(filename):
     List
         Class labels
     """
-    with open(labels_path, 'r') as f:
+    with open(filename, 'r') as f:
         labels = [line.strip() for line in f.readlines()]
     
     return labels

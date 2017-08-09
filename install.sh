@@ -37,15 +37,15 @@ echo "Essential dependencies installed."
 
 # OpenCV Dependency
 echo "Downloading OpenCV..."
-if [ -d "opencv-3.1.0" ]; then
-  sudo rm -r "opencv-3.1.0"
+if [ -d "opencv-3.3.0" ]; then
+  sudo rm -r "opencv-3.3.0"
 fi
 
 # OpenCV Dependency
 echo "Downloading OpenCV..."
-wget https://github.com/Itseez/opencv/archive/3.1.0.zip
-unzip 3.1.0.zip
-cd opencv-3.1.0
+wget https://github.com/Itseez/opencv/archive/3.3.0.zip
+unzip 3.3.0.zip
+cd opencv-3.3.0
 mkdir -p build
 cd build
 echo "Installing OpenCV..."
@@ -53,8 +53,8 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB
 make -j4
 sudo make install
 cd ../..
-rm 3.1.0.zip
-sudo rm -r opencv-3.1.0
+rm 3.3.0.zip
+sudo rm -r opencv-3.3.0
 echo "OpenCV installed."
 
 # Boost C++ Dependency
@@ -71,6 +71,7 @@ mkdir build
 cd build
 cmake -D CMAKE_BUILD_TYPE=RELEASE ..
 make
+cd ../..
 echo "OpenFace installed."
 
 echo "Installing Python Module..."

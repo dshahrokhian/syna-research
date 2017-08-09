@@ -47,7 +47,6 @@ def dicts2lists(dict_videos, dict_emotions):
     dict_emotions : {Record identifier : Emotion identifier}
     
     Returns
-
     -------
     List, List
         [videp paths], [emotion identifiers]
