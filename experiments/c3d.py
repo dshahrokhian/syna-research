@@ -13,6 +13,7 @@ import deepmotion.c3d.c3d_model
 import keras.backend as K
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing import sequence
+from keras.optimizers import Adam
 import math
 import datetime
 
@@ -103,19 +104,23 @@ def get_features_model(c3d_model):
 
     return c3d_model
 
-def get_temporal_model(layers=[512]):
+def get_temporal_model(summary=False, layers=[512], lr=0.001, lr_decay=0.0, input_shape=(1, None, 4096, )):
 
-    input_features = Input(batch_shape=(1, None, 4096, ), name='features')
+    input_features = Input(batch_shape=input_shape, name='features')
     input_normalized = BatchNormalization(name='normalization')(input_features)
     input_dropout = Dropout(rate=0.5)(input_normalized)
     lstm = LSTM(layers[-1], return_sequences=True, stateful=True, name='lsmt1')(input_dropout)
     output_dropout = Dropout(rate=0.5)(lstm)
-    output = TimeDistributed(Dense(8, activation='softmax'), name='fc')(output_dropout)
-    #output = Dense(8, activation='softmax', name='fc')(output_dropout)
+    #output = TimeDistributed(Dense(8, activation='softmax'), name='fc')(output_dropout)
+    output = Dense(8, activation='softmax', name='fc')(output_dropout)
 
     temp_model = Model(inputs=input_features, outputs=output)
 
-    temp_model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    adam_opt = Adam(lr=lr, decay=lr_decay)
+    temp_model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
+
+    if summary:
+        print(model.summary())
 
     return temp_model
 

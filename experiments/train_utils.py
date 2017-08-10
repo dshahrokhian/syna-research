@@ -181,8 +181,3 @@ def dicts2lists(dict_features, dict_emotions):
             l_emotions.append(dict_emotions[record_id])
     
     return np.array(l_features), np.array(l_emotions)
-
-if __name__ == "__main__":
-    img = plt.imread('/home/dani/Downloads/pic3.jpg')
-    frontalizer = face_frontalizer()
-    frontalizer.frontalize(img)[0].show()
