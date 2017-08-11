@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-DeepMotion - Example with OpenFace network
+Syna - Experimenting with OpenFace features
 ===============================================================================
 """
 __author__ = "Daniyal Shahrokhian <daniyal@kth.se>"
@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import pandas
 import math
 from keras.preprocessing import sequence
-from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
 from sklearn import metrics
 from keras.utils.np_utils import to_categorical
@@ -56,45 +55,13 @@ def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
 
     return train_utils.dicts2lists(features, labels)    
 
-def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
-    # The Gaussian Process' space is continous, so we need to round some values
-    neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
-
-    # K-fold stratified cross-validation
-    skf = StratifiedKFold(n_splits=10, shuffle=True)
-    
-    scores = []
-    for train_index, test_index in skf.split(features, labels):
-        x_train, x_test = features[train_index], features[test_index]
-        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index])
-
-        # Create and fit the LSTM network
-        model = deepmotion.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
-        for _ in range(epochs):
-            for X, Y in zip(x_train, y_train):
-                model.train_on_batch(np.array([X]), np.array([Y]))
-
-        # Final evaluation of the model
-        evals = train_utils.evaluate(model, x_test, y_test)
-        losses = [x[0] for x in evals]
-        accuracies = [x[1] for x in evals]
-        scores.append([np.mean(losses), np.mean(accuracies)])
-
-    losses = [x[0] for x in scores]
-    accuracies = [x[1] for x in scores]
-
-    print("Test loss and Standard dev: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
-    print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" 
-          % (np.mean(accuracies)*100, np.std(accuracies)*100))
-
-    return np.mean(accuracies)
-
 def main():
     # Load the datasets
     features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+norm")
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
     
     for feature_type in ['AU_activations', 'AUs', '2Dlandmarks']:
+        print("Using " + feature_type)
         global openface_feature
         openface_feature = feature_type
         
@@ -111,7 +78,8 @@ def main():
         #x_test = sequence.pad_sequences(x_test, maxlen=maxlen, dtype='float32')
 
         # Bayesian Hyperparameter Optimization
-        hyper_opt = BayesianOptimization(adam_evaluate, {'neurons': (40, 200),
+        evaluator = train_utils.model_evaluator(deepmotion.get_model, features, labels)
+        hyper_opt = BayesianOptimization(evaluator.evaluate, {'neurons': (40, 200),
                                                          'epochs': (5, 40),
                                                          'lr': (0.0005, 0.005),
                                                          'lr_decay': (0.0, 1e-4),

@@ -80,8 +80,8 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
             model.train_on_batch(np.array([X]), np.array([Y]))
 
             if i % report_freq == 0:
-                train_evals = train_utils.evaluate(model, x_train, y_train)
-                test_evals = train_utils.evaluate(model, x_test, y_test)
+                train_evals = train_utils.test(model, x_train, y_train)
+                test_evals = train_utils.test(model, x_test, y_test)
 
                 io_utils.append_csv(output_filename, [openface_feature,
                                                         epoch, 
@@ -92,7 +92,7 @@ def adam_evaluate(neurons, lr, lr_decay, epochs, batch_size):
             i += 1
     
     # Final evaluation of the model
-    evals = train_utils.evaluate(model, x_test, y_test)
+    evals = train_utils.test(model, x_test, y_test)
 
     losses = [x[0] for x in evals]
     accuracies = [x[1] for x in evals]

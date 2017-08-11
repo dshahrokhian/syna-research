@@ -7,7 +7,7 @@ DeepMotion - Dataloader for Cohn-Kanade Database (CK and CK+) Emotion files
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 
 import os
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 def get_emotion(filename):
     """ 

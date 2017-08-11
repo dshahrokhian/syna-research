@@ -24,7 +24,6 @@ from keras.utils.np_utils import to_categorical
 from sklearn import metrics, preprocessing
 from sklearn.model_selection import StratifiedKFold
 
-import io_utils
 import train_utils
 
 def create_csv(filename, fields):
@@ -88,8 +87,8 @@ def report_metrics(output_filename, get_model, hyperparams, features, labels):
 
     scores, y_true, y_pred = [], [], []
     for train_index, test_index in skf.split(features, labels):
-        x_train, x_test = features[train_index], features[test_index]
-        y_train, y_test = to_categorical(labels[train_index]), to_categorical(labels[test_index])
+        x_train, x_test = [features[i] for i in train_index], [features[i] for i in test_index]
+        y_train, y_test = to_categorical([labels[i] for i in train_index]), to_categorical([labels[i] for i in test_index])
 
         # For visualization purposes, we will report training metrics 100 times.
         report_freq = int(epochs*len(x_train)/100)
@@ -104,8 +103,8 @@ def report_metrics(output_filename, get_model, hyperparams, features, labels):
                 model.train_on_batch(np.array([X]), np.array([Y]))
 
                 if i % report_freq == 0:
-                    train_evals = train_utils.evaluate(model, x_train, y_train)
-                    test_evals = train_utils.evaluate(model, x_test, y_test)
+                    train_evals = train_utils.test(model, x_train, y_train)
+                    test_evals = train_utils.test(model, x_test, y_test)
 
                     io_utils.append_csv(output_filename, [openface_feature,
                                                           epoch,
@@ -116,7 +115,7 @@ def report_metrics(output_filename, get_model, hyperparams, features, labels):
                 i += 1
         
         # Final evaluation of the model
-        evals = train_utils.evaluate(model, x_test, y_test)
+        evals = train_utils.test(model, x_test, y_test)
         losses = [x[0] for x in evals]
         accuracies = [x[1] for x in evals]
         scores.append([np.mean(losses), np.mean(accuracies)])
@@ -133,11 +132,10 @@ def report_metrics(output_filename, get_model, hyperparams, features, labels):
     print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
     print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)"
           % (np.mean(accuracies)*100, np.std(accuracies)*100))
-    print(cnf_matrix)
     print(metrics.classification_report(y_true, y_pred, target_names=CLASS_NAMES))
 
     # Plot Confusion Matrix
     np.set_printoptions(precision=2)
     plt.figure()
-    io_utils.plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
+    plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
     plt.show()

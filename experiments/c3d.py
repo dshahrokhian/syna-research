@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 
-# C3D imports
-import matplotlib
-matplotlib.use('Agg')
-from keras.models import model_from_json, Model
-import os
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-import deepmotion.c3d.c3d_model
-
-import keras.backend as K
-from keras.utils.np_utils import to_categorical
-from keras.preprocessing import sequence
-from keras.optimizers import Adam
-import math
 import datetime
+import math
+import os
 
-# DeepMotion imports
-from keras.layers import Dense, LSTM, Activation, BatchNormalization, TimeDistributed, Dropout, Input
-from deepmotion.dataloader.ck_dataloader import load_CK_emotions, load_CK_videos
+import cv2
+import deepmotion.c3d.c3d_model
+import keras.backend as K
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from deepmotion.dataloader.ck_dataloader import (load_CK_emotions,
+                                                 load_CK_videos)
+from keras.layers import (LSTM, Activation, BatchNormalization, Dense, Dropout,
+                          Input, TimeDistributed)
+from keras.models import Model, model_from_json
+from keras.optimizers import Adam
+from keras.preprocessing import sequence
+from keras.utils.np_utils import to_categorical
+
 import train_utils
+
+matplotlib.use('Agg')
 
 backend = K.image_dim_ordering
 print("[Info] image_dim_order (from default ~/.keras/keras.json)={}".format(

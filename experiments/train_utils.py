@@ -11,8 +11,11 @@ import dlib
 import scipy.misc as sm
 import matplotlib.pyplot as plt
 import numpy as np
-import  deepmotion.frontalization.facefrontal
+from  deepmotion.frontalization import facefrontal
 from sklearn import preprocessing
+from sklearn.model_selection import StratifiedKFold
+from sklearn import metrics
+from keras.utils.np_utils import to_categorical
 
 class face_frontalizer():
     """
@@ -107,7 +110,7 @@ def normalize(X, axis=0):
     
     return X
 
-def evaluate(model, features, labels):
+def test(model, features, labels):
     """ 
     Evaluates the prediction performance of a given model.
     
@@ -181,3 +184,46 @@ def dicts2lists(dict_features, dict_emotions):
             l_emotions.append(dict_emotions[record_id])
     
     return np.array(l_features), np.array(l_emotions)
+
+class model_evaluator():
+    """
+    This class represents an object wrapper used for evaluating a model through multiple iterations
+    in Bayesian Optimization.
+    """
+    def __init__(self, get_model_method, features, labels):
+        self.get_model = get_model_method
+        self.features = features
+        self.labels = labels
+
+    def evaluate(self, neurons, lr, lr_decay, epochs, batch_size):
+        # The Gaussian Process' space is continous, so we need to round some values
+        neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
+
+        # K-fold stratified cross-validation
+        skf = StratifiedKFold(n_splits=10, shuffle=True)
+        
+        scores = []
+        for train_index, test_index in skf.split(self.features, self.labels):
+            x_train, x_test = [self.features[i] for i in train_index], [self.features[i] for i in test_index]
+            y_train, y_test = to_categorical([self.labels[i] for i in train_index]), to_categorical([self.labels[i] for i in test_index])
+
+            # Create and fit the LSTM network
+            model = self.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
+            for _ in range(epochs):
+                for X, Y in zip(x_train, y_train):
+                    model.train_on_batch(np.array([X]), np.array([Y]))
+
+            # Evaluation using test data
+            evals = test(model, x_test, y_test)
+            losses = [x[0] for x in evals]
+            accuracies = [x[1] for x in evals]
+            scores.append([np.mean(losses), np.mean(accuracies)])
+
+        losses = [x[0] for x in scores]
+        accuracies = [x[1] for x in scores]
+
+        print("Test loss and Standard dev: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+        print("Test accuracy and Standard dev: %.2f%% (+/- %.2f%%)" 
+            % (np.mean(accuracies)*100, np.std(accuracies)*100))
+
+        return np.mean(accuracies)
