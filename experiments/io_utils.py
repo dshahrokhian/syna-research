@@ -1,39 +1,143 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-DeepMotion - Input/Output utils
+Syna - Input/Output utils
 ===============================================================================
 """
 __author__ = "Daniyal Shahrokhian <daniyal@kth.se>"
 
 import csv
-import datetime
 import itertools
-import math
 import os
 
-import deepmotion.deepmotion_model as deepmotion
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas
-from bayes_opt import BayesianOptimization
-from deepmotion.dataloader.ck_dataloader import load_CK_emotions
-from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
-from keras.preprocessing import sequence
 from keras.utils.np_utils import to_categorical
-from sklearn import metrics, preprocessing
+from sklearn import metrics
+from sklearn.learning_curve import learning_curve
 from sklearn.model_selection import StratifiedKFold
 
 import train_utils
 
+CLASS_NAMES = train_utils.class_labels(os.path.join(os.path.dirname(__file__),
+                                                    "../data/classification/labels.txt"))
+
 def create_csv(filename, fields):
-    with open(filename,'wb') as f:
+    with open(filename, 'wb') as f:
         f.write(fields, delimiter=',')
 
 def append_csv(filename, results):
     with open(filename, 'a') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(results)
+
+def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
+    # The Gaussian Process' space is continous, so we need to round some values
+    neurons, epochs, batch_size = map(lambda x: int(round(x)),
+                                      (hyperparams['neurons'], hyperparams['epochs'],
+                                       hyperparams['batch_size']))
+
+    # Create and fit the model
+    model = get_model(layers=[neurons], lr=hyperparams['lr'],
+                      lr_decay=hyperparams['lr_decay'],
+                      input_shape=(None, len(x_train[0][0])))
+
+    history = model.fit(x_train, y_train, batch_size=1, epochs=epochs, callbacks=None, 
+                        validation_data=(x_test, y_test))
+
+    # Final evaluation of the model
+    evals = train_utils.get_scores(model, x_test, y_test)
+    losses = [x[0] for x in evals]
+    accuracies = [x[1] for x in evals]
+    scores = [np.mean(losses), np.mean(accuracies)]
+
+    # Store predictions
+    y_pred = train_utils.predict(model, x_test)
+    y_true = [np.argmax(y) for y in y_test]
+
+    losses = [x[0] for x in scores]
+    accuracies = [x[1] for x in scores]
+    cnf_matrix = metrics.confusion_matrix(y_true, y_pred)
+
+    # Print stats
+    print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)"
+          % (np.mean(accuracies)*100, np.std(accuracies)*100))
+    print(metrics.classification_report(y_true, y_pred, target_names=CLASS_NAMES))
+
+    # Plot figures
+    plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
+    plot_learning_curve(get_model(layers=[neurons], lr=hyperparams['lr'],
+                                  lr_decay=hyperparams['lr_decay'],
+                                  input_shape=(None, len(x_train[0][0]))),
+                        x_train, y_train, title="Learning Curve")
+    plot_model_training(history['loss'], history['val_loss'], history['acc'], history['val_acc'])
+    plt.show()
+
+def kfold_report_metrics(get_model, hyperparams, features, labels):
+    # The Gaussian Process' space is continous, so we need to round some values
+    neurons, epochs, batch_size = map(lambda x: int(round(x)),
+                                      (hyperparams['neurons'], hyperparams['epochs'],
+                                       hyperparams['batch_size']))
+
+    # K-fold stratified cross-validation
+    n_splits = 10
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True)
+
+    train_losses, train_accs = np.zeros(epochs), np.zeros(epochs)
+    test_losses, test_accs = np.zeros(epochs), np.zeros(epochs)
+    scores, y_true, y_pred = [], [], []
+    for train_index, test_index in skf.split(features, labels):
+        x_train, x_test = [features[i] for i in train_index], [features[i] for i in test_index]
+        y_train = to_categorical([labels[i] for i in train_index])
+        y_test = to_categorical([labels[i] for i in test_index])
+
+        # Create and fit the model
+        model = get_model(layers=[neurons], lr=hyperparams['lr'],
+                          lr_decay=hyperparams['lr_decay'],
+                          input_shape=(None, len(x_train[0][0])))
+
+        for epoch in range(epochs):
+            for X, Y in zip(x_train, y_train):
+                model.train_on_batch(np.array([X]), np.array([Y]))
+
+            train_evals = train_utils.get_scores(model, x_train, y_train)
+            test_evals = train_utils.get_scores(model, x_test, y_test)
+
+            train_losses[epoch] += np.mean([x[0] for x in train_evals])
+            test_losses[epoch] += np.mean([x[0] for x in test_evals])
+            train_accs[epoch] += np.mean([x[1] for x in train_evals])
+            test_accs[epoch] += np.mean([x[1] for x in test_evals])
+
+        # Final evaluation of the model
+        evals = train_utils.get_scores(model, x_test, y_test)
+        losses = [x[0] for x in evals]
+        accuracies = [x[1] for x in evals]
+        scores.append([np.mean(losses), np.mean(accuracies)])
+
+        # Store predictions and ground truths
+        y_pred.extend(train_utils.predict(model, x_test))
+        y_true.extend(labels[test_index])
+
+    losses = [x[0] for x in scores]
+    accuracies = [x[1] for x in scores]
+    cnf_matrix = metrics.confusion_matrix(y_true, y_pred)
+
+    # Print stats
+    print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
+    print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)"
+          % (np.mean(accuracies)*100, np.std(accuracies)*100))
+    print(metrics.classification_report(y_true, y_pred, target_names=CLASS_NAMES))
+
+    # Plot figures
+    plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
+    plot_learning_curve(get_model(layers=[neurons], lr=hyperparams['lr'],
+                                  lr_decay=hyperparams['lr_decay'],
+                                  input_shape=(None, len(x_train[0][0]))),
+                        features, labels, title="10-Fold Learning Curve", cv=n_splits)
+    plot_model_training(train_losses/n_splits, test_losses/n_splits, train_accs/n_splits,
+                        test_accs/n_splits)
+    plt.show()
 
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
@@ -43,6 +147,7 @@ def plot_confusion_matrix(cm, classes,
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
+    np.set_printoptions(precision=2)
     plt.figure()
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -69,73 +174,84 @@ def plot_confusion_matrix(cm, classes,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
+    np.set_printoptions(precision=8)
 
-def report_metrics(output_filename, get_model, hyperparams, features, labels):
-    io_utils.append_csv(output_filename, ['feature_type',
-                                          'epoch',
-                                          'train_loss',
-                                          'test_loss',
-                                          'train_acc',
-                                          'test_acc'])
+def plot_learning_curve(estimator, X, y, title="Learning Curves", ylim=None, cv=None,
+                        n_jobs=1, train_sizes=np.linspace(.1, 1.0, 10)):
+    """
+    Generate a simple plot of the test and traning learning curve.
 
-    # The Gaussian Process' space is continous, so we need to round some values
-    neurons, epochs, batch_size = map(lambda x: int(round(x)),
-        (hyperparams['neurons'], hyperparams['epochs'], hyperparams['batch_size']))
+    Parameters
+    ----------
+    estimator : object type that implements the "fit" and "predict" methods
+        An object of that type which is cloned for each validation.
 
-    # K-fold stratified cross-validation
-    skf = StratifiedKFold(n_splits=10, shuffle=True)
+    title : string
+        Title for the chart.
 
-    scores, y_true, y_pred = [], [], []
-    for train_index, test_index in skf.split(features, labels):
-        x_train, x_test = [features[i] for i in train_index], [features[i] for i in test_index]
-        y_train, y_test = to_categorical([labels[i] for i in train_index]), to_categorical([labels[i] for i in test_index])
+    X : array-like, shape (n_samples, n_features)
+        Training vector, where n_samples is the number of samples and
+        n_features is the number of features.
 
-        # For visualization purposes, we will report training metrics 100 times.
-        report_freq = int(epochs*len(x_train)/100)
+    y : array-like, shape (n_samples) or (n_samples, n_features), optional
+        Target relative to X for classification or regression;
+        None for unsupervised learning.
 
-        # Create and fit the LSTM network
-        model = get_model(layers=[neurons], lr=hyperparams['lr'],
-                                     lr_decay=hyperparams['lr_decay'],
-                                     input_shape=(None,len(x_train[0][0])))
-        i = 0
-        for epoch in range(epochs):
-            for X, Y in zip(x_train, y_train):
-                model.train_on_batch(np.array([X]), np.array([Y]))
+    ylim : tuple, shape (ymin, ymax), optional
+        Defines minimum and maximum yvalues plotted.
 
-                if i % report_freq == 0:
-                    train_evals = train_utils.test(model, x_train, y_train)
-                    test_evals = train_utils.test(model, x_test, y_test)
+    cv : integer, cross-validation generator, optional
+        If an integer is passed, it is the number of folds (defaults to 3).
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects
 
-                    io_utils.append_csv(output_filename, [openface_feature,
-                                                          epoch,
-                                                          np.mean([x[0] for x in train_evals]),
-                                                          np.mean([x[0] for x in test_evals]),
-                                                          np.mean([x[1] for x in train_evals])*100,
-                                                          np.mean([x[1] for x in test_evals])*100])
-                i += 1
-        
-        # Final evaluation of the model
-        evals = train_utils.test(model, x_test, y_test)
-        losses = [x[0] for x in evals]
-        accuracies = [x[1] for x in evals]
-        scores.append([np.mean(losses), np.mean(accuracies)])
-
-        # Store predictions and ground truths
-        y_pred.extend(train_utils.predict(model, x_test))
-        y_true.extend(labels[test_index])
-
-    losses = [x[0] for x in scores]
-    accuracies = [x[1] for x in scores]
-    cnf_matrix = metrics.confusion_matrix(y_true, y_pred)
-
-    # Print stats
-    print("Test loss and Confidence Interval: %.2f (+/- %.2f)" % (np.mean(losses), np.std(losses)))
-    print("Test accuracy and Confidence Interval: %.2f%% (+/- %.2f%%)"
-          % (np.mean(accuracies)*100, np.std(accuracies)*100))
-    print(metrics.classification_report(y_true, y_pred, target_names=CLASS_NAMES))
-
-    # Plot Confusion Matrix
-    np.set_printoptions(precision=2)
+    n_jobs : integer, optional
+        Number of jobs to run in parallel (default 1).
+    """
     plt.figure()
-    plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
+    plt.title(title)
+    if ylim is not None:
+        plt.ylim(*ylim)
+    plt.xlabel("Training examples")
+    plt.ylabel("Score")
+    train_sizes, train_scores, test_scores = learning_curve(
+        estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    plt.grid()
+
+    plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.1,
+                     color="r")
+    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.1, color="g")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+             label="Training score")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+             label="Cross-validation score")
+
+    plt.legend(loc="best")
+    return plt
+
+def plot_model_training(loss, val_loss, acc, val_acc):
+    # Losses
+    plt.figure()
+    plt.plot(loss)
+    plt.plot(val_loss)
+    plt.title('Model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper right')
+
+    # Accuracies
+    plt.figure()
+    plt.plot(acc)
+    plt.plot(val_acc)
+    plt.title('Model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper right')
+
     plt.show()
