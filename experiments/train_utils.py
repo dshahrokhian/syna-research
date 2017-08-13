@@ -19,40 +19,40 @@ from keras.utils.np_utils import to_categorical
 
 class FaceFrontalizer():
     """
-    This is an adaptation from https://github.com/ChrisYang/facefrontalisation. 
-    I appologize if the code is not very clean, but there are certain 
-    implementation aspects that were not explained neither in his python 
+    This is an adaptation from https://github.com/ChrisYang/facefrontalisation.
+    I appologize if the code is not very clean, but there are certain
+    implementation aspects that were not explained neither in his python
     conversion nor in the original matlab code.
     """
     def __init__(self):
-        face_model_path = os.path.join(os.path.dirname(__file__),  '../data/frontalization/face_shape.dat')
-        ref3d_path = os.path.join(os.path.dirname(__file__),  '../data/frontalization/ref3d.pkl')
-        
+        face_model_path = os.path.join(os.path.dirname(__file__), '../data/frontalization/face_shape.dat')
+        ref3d_path = os.path.join(os.path.dirname(__file__), '../data/frontalization/ref3d.pkl')
+
         self.face_model = dlib.shape_predictor(face_model_path)
         self.face_detector = dlib.get_frontal_face_detector()
         self.frontalizer = facefrontal.frontalizer(ref3d_path)
 
     def frontalize(self, img):
-        """ 
+        """
         Given a path to an image, it returns the same image frontalized.
 
         Parameters
         ----------
         filename : image file
-        
+
         Returns
         -------
         PIL.Image
             Frontalized image
         """
 
-        # Ask the detector to find the bounding boxes of each face. The ':,:,:3' 
-        # in the first argument avoids the last dimension in RGBA formats, 
-        # which dlib doesn't accept. The 1 in the second argument indicates that 
-        # we should upsample the image 1 time. This will make everything bigger 
+        # Ask the detector to find the bounding boxes of each face. The ':,:,:3'
+        # in the first argument avoids the last dimension in RGBA formats,
+        # which dlib doesn't accept. The 1 in the second argument indicates that
+        # we should upsample the image 1 time. This will make everything bigger
         # and allow us to detect more faces.
         detected_faces = self.face_detector(img[:,:,:3], 1)
-        
+
         frontalized_faces = []
         for face in detected_faces:
             shape = self.face_model(img,face)
@@ -60,11 +60,11 @@ class FaceFrontalizer():
 
             rawfront, symfront = self.frontalizer.frontalization(img,face,p2d)
             frontalized_faces.append(sm.toimage(np.round(symfront).astype(np.uint8)))
-        
+
         return frontalized_faces
 
 def class_labels(filename):
-    """ 
+    """
     Returns the list of class labels from a file (one class per line)
 
     Parameters
@@ -78,11 +78,11 @@ def class_labels(filename):
     """
     with open(filename, 'r') as f:
         labels = [line.strip() for line in f.readlines()]
-    
+
     return labels
 
 def normalize(X, axis=0):
-    """ 
+    """
     Given a list of samples, centers to the mean and component wise scales to
     unit variance.
 
@@ -107,19 +107,19 @@ def normalize(X, axis=0):
 
         j += len(X[i])
         i += 1
-    
+
     return X
 
 def get_scores(model, features, labels):
     """ 
     Tests the prediction performance of a given model.
-    
+
     Parameters
     ----------
     model : predictive model to test
     features : input data to the model
     labels : ground truth
-    
+
     Returns
     -------
     List
@@ -128,13 +128,13 @@ def get_scores(model, features, labels):
     scores = []
     for X, Y in zip(features, labels):
         scores.append(model.test_on_batch(np.array([X]), np.array([Y])))
-    
+
     return scores
 
 def predict(model, features):
-    """ 
+    """
     Given a model and a set of input features, returns the predictions.
-    
+
     Parameters
     ----------
     model : predictive model to evaluate
@@ -152,20 +152,20 @@ def predict(model, features):
     return predictions
 
 def dicts2lists(dict_features, dict_emotions):
-    """ 
+    """
     Converts the dictionaries of the dataloaders into lists, containing only
-    records with identifiers present in both dictionaries, and ordered by 
+    records with identifiers present in both dictionaries, and ordered by
     record identifiers.
-    
+
     Parameters
     ----------
-    dict_features : {Record identifier : 
-                            {timestamp :    
+    dict_features : {Record identifier :
+                            {timestamp :
                                 {feature code : feature value}
                             }
                         }
     dict_emotions : {Record identifier : Emotion identifier}
-    
+
     Returns
     -------
     List, List
@@ -179,10 +179,10 @@ def dicts2lists(dict_features, dict_emotions):
             record_features = []
             for timestamp in sorted(values.keys()):
                 record_features.append(list(values[timestamp].values()))
-            
+
             l_features.append(record_features)
             l_emotions.append(dict_emotions[record_id])
-    
+
     return np.array(l_features), np.array(l_emotions)
 
 class ModelEvaluator():
@@ -197,19 +197,19 @@ class ModelEvaluator():
         self.x_test = x_test
         self.y_train = y_train
         self.y_test = y_test
-    
+
     def evaluate(self, neurons, lr, lr_decay, epochs, batch_size):
         # The Gaussian Process' space is continous, so we need to round these values
         neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
 
         # Create and fit the model
-        model = self.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None,len(x_train[0][0])))
+        model = self.get_model(layers=[neurons], lr=lr, lr_decay=lr_decay, input_shape=(None, len(self.x_train[0][0])))
         for _ in range(epochs):
-            for X, Y in zip(x_train, y_train):
+            for X, Y in zip(self.x_train, self.y_train):
                 model.train_on_batch(np.array([X]), np.array([Y]))
-        
+
         # Evaluation using test data
-        evals = get_scores(model, x_test, y_test)
+        evals = get_scores(model, self.x_test, self.y_test)
         losses = [x[0] for x in evals]
         accuracies = [x[1] for x in evals]
 
@@ -226,15 +226,15 @@ class KFoldEvaluator():
         self.labels = labels
 
         # K-fold stratified cross-validation
-        skf = StratifiedKFold(n_splits=10, shuffle=True)
+        self.skf = StratifiedKFold(n_splits=10, shuffle=True)
 
     def evaluate(self, neurons, lr, lr_decay, epochs, batch_size):
         accuracies = []
-        for train_index, test_index in skf.split(self.features, self.labels):
+        for train_index, test_index in self.skf.split(self.features, self.labels):
             x_train, x_test = [self.features[i] for i in train_index], [self.features[i] for i in test_index]
             y_train, y_test = to_categorical([self.labels[i] for i in train_index]), to_categorical([self.labels[i] for i in test_index])
             
             evaluator = ModelEvaluator(self.get_model, x_train, x_test, y_train, y_test)
-            accuracies.append(evaluator.evaluate(neurons,lr,lr_decay,epochs,batch_size))
+            accuracies.append(evaluator.evaluate(neurons, lr, lr_decay, epochs, batch_size))
         
         return np.mean(accuracies)
