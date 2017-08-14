@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils.np_utils import to_categorical
 from sklearn import metrics
-from sklearn.learning_curve import learning_curve
+from sklearn.model_selection import learning_curve
 from sklearn.model_selection import StratifiedKFold
 
 import train_utils
@@ -117,7 +117,7 @@ def kfold_report_metrics(get_model, hyperparams, features, labels):
 
         # Store predictions and ground truths
         y_pred.extend(train_utils.predict(model, x_test))
-        y_true.extend(labels[test_index])
+        y_true.extend([labels[i] for i in test_index])
 
     losses = [x[0] for x in scores]
     accuracies = [x[1] for x in scores]
@@ -207,6 +207,10 @@ def plot_learning_curve(estimator, X, y, title="Learning Curves", ylim=None, cv=
 
     n_jobs : integer, optional
         Number of jobs to run in parallel (default 1).
+    
+    train_sizes : array-like, shape (sizes), optional
+        Determines the increasing size in the training data for the plot. 
+        By default, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].
     """
     plt.figure()
     plt.title(title)

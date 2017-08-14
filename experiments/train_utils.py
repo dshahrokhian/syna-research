@@ -148,7 +148,7 @@ def predict(model, features):
     predictions = []
     for X in features:
         predictions.append(np.argmax(model.predict_on_batch(np.array([X]))))
-    
+
     return predictions
 
 def dicts2lists(dict_features, dict_emotions):
