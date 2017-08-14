@@ -97,6 +97,9 @@ def parse_vid(filename):
             vid.append(cv2.resize(img, (171, 128)))
     vid = np.array(vid, dtype=np.float32)
 
+    if len(vid) == 0:
+        return None
+
     n_frames = len(vid)
     n_clips = math.ceil(n_frames / clip_length)
 
@@ -125,6 +128,26 @@ def parse_vid(filename):
 
     return vid
 
+def clean_and_extract(features, labels):
+    """
+    Removes videos in which there are no detected faces, and then processes the rest by extracting
+    C3D features.
+    """
+    feature_extractor = get_feature_extractor()
+    videos = []
+
+    for i in range(len(features)):
+        parsed = parse_vid(features[i])
+        if parsed is not None:
+            videos.append(parsed)
+        else:
+            del labels[i]
+
+    videos = [feature_extractor.predict(video, batch_size=1) for video in videos]
+    videos = np.array(videos).reshape((1, len(videos), 4096))
+
+    return videos, labels
+
 def main():
     # Fix random seed for reproducibility
     np.random.seed(7)
@@ -135,12 +158,9 @@ def main():
     x_test, y_test = load_AFEW_data(dataset_path, set='Val')
 
     # Extract features
-    feature_extractor = get_feature_extractor()
-    print(x_train)
-    x_train = [parse_vid(video) for video in x_train]
-    x_train = [feature_extractor.predict(feat, batch_size=1) for feat in x_train]
-    x_train = np.array(x_train).reshape((1, len(x_train), 4096))
-
+    x_train, y_train = clean_and_extract(x_train, y_train)
+    x_test, y_test = clean_and_extract(x_test, y_test)
+    
     # Preprocess labels
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
