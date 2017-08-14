@@ -91,10 +91,10 @@ def parse_vid(filename):
         ret, img = cap.read()
         if not ret:
             break
-
-        img = np.array(frontalizer.frontalize(img)[0]) # For now, just interested in one face per sample.
-
-        vid.append(cv2.resize(img, (171, 128)))
+        frontalized_faces = frontalizer.frontalize(img)
+        if len(frontalized_faces) > 0:
+            img = np.array(frontalizer.frontalize(img)[0]) # For now, just interested in one face per sample.
+            vid.append(cv2.resize(img, (171, 128)))
     vid = np.array(vid, dtype=np.float32)
 
     n_frames = len(vid)
@@ -136,6 +136,7 @@ def main():
 
     # Extract features
     feature_extractor = get_feature_extractor()
+    print(x_train)
     x_train = [parse_vid(video) for video in x_train]
     x_train = [feature_extractor.predict(feat, batch_size=1) for feat in x_train]
     x_train = np.array(x_train).reshape((1, len(x_train), 4096))

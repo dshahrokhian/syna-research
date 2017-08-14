@@ -61,19 +61,19 @@ def load_AFEW_data(root_dirname, set='Train'):
         Video paths, Emotion identifiers
     """
     if set == 'Train' or set == 'Val':
-        emotion_dir = os.path.join(root_dirname, set)
+        root_dirname = os.path.join(root_dirname, set)
     else:
         ValueError("set argument must be either 'Train' or 'Val'")
 
     videos = []
     emotions = []
 
-    for dirpath, _, file_list in os.walk(emotion_dir):
+    for dirpath, _, file_list in os.walk(root_dirname):
         dirname = os.path.basename(dirpath)
 
         if dirname in LABELS:
             for filename in file_list:
-                videos.append(os.path.join(dirname, filename))
+                videos.append(os.path.join(root_dirname, dirname, filename))
                 emotions.append(LABELS[dirname])
 
     return videos, emotions
