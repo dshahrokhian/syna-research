@@ -1,4 +1,10 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+===============================================================================
+Syna - Experimenting with C3D features
+===============================================================================
+"""
+__author__ = "Daniyal Shahrokhian <daniyal@kth.se>"
 
 import math
 import os
@@ -8,16 +14,15 @@ import keras.backend as K
 import matplotlib
 import numpy as np
 from bayes_opt import BayesianOptimization
-from keras.layers import (LSTM, Activation, BatchNormalization, Dense, Dropout,
+from keras.layers import (LSTM, BatchNormalization, Dense, Dropout,
                           Input, TimeDistributed)
 from keras.models import Model, model_from_json
 from keras.optimizers import Adam
-
+from keras.utils.np_utils import to_categorical
 import deepmotion.c3d.c3d_model
 import io_utils
 import train_utils
-from deepmotion.dataloader.ck_dataloader import (load_CK_emotions,
-                                                 load_CK_videos)
+from deepmotion.dataloader.afew_dataloader import load_AFEW_data
 from deepmotion.deepmotion_model import get_temporal_model
 
 matplotlib.use('Agg')
@@ -35,52 +40,6 @@ mean_cube = np.load(mean_dir)
 mean_cube = np.transpose(mean_cube, (1, 2, 3, 0))
 
 frontalizer = train_utils.FaceFrontalizer()
-
-def dicts2lists(dict_videos, dict_emotions):
-    """
-    Converts the dictionaries of the dataloaders into lists, containing only
-    records with identifiers present in both dictionaries, and ordered by
-    record identifiers.
-
-    Parameters
-    ----------
-    dict_videos : {Record identifier : video path}
-    dict_emotions : {Record identifier : Emotion identifier}
-
-    Returns
-    -------
-    List, List
-        [videp paths], [emotion identifiers]
-    """
-    l_videos = []
-    l_emotions = []
-
-    for record_id, video_path in dict_videos.items():
-        if record_id in dict_emotions:
-            l_videos.append(video_path)
-            l_emotions.append(dict_emotions[record_id])
-
-    return l_videos, l_emotions
-
-def load_ck_data(videos_path, emotions_path):
-    """
-    Extracts video paths and CK+ Emotion labels, preserving the order
-    (e.g. x_train[0] corresponds to the same sample as y_train[0]).
-
-    Parameters
-    ----------
-    videos_path : root directory of the parsed CK+ dataset containing videos
-    emotion_path : root directory of the CK+ dataset
-
-    Returns
-    -------
-    List, List
-        video-paths, CK+ emotion labels
-    """
-    videos = load_CK_videos(videos_path)
-    emotions = load_CK_emotions(emotions_path)
-
-    return dicts2lists(videos, emotions)
 
 def get_feature_extractor(summary=False):
     model_dir = os.path.join(os.path.dirname(__file__), '../deepmotion/c3d/models')
@@ -171,50 +130,33 @@ def main():
     np.random.seed(7)
 
     # Load videos and emotions
-    videos_path = os.path.join(os.path.dirname(__file__), "../datasets/ck+videos")
-    emotions_path = os.path.join(os.path.dirname(__file__), "../datasets/ck+")
-    videos, labels = load_ck_data(videos_path, emotions_path)
+    dataset_path = os.path.join(os.path.dirname(__file__), "..", "datasets/afew")
+    x_train, y_train = load_AFEW_data(dataset_path, set='Train')
+    x_test, y_test = load_AFEW_data(dataset_path, set='Val')
 
     # Extract features
     feature_extractor = get_feature_extractor()
-    features = [parse_vid(video) for video in videos]
-    features = [feature_extractor.predict(feat, batch_size=1) for feat in features]
-    features = np.array(features).reshape((1, len(features), 4096))
+    x_train = [parse_vid(video) for video in x_train]
+    x_train = [feature_extractor.predict(feat, batch_size=1) for feat in x_train]
+    x_train = np.array(x_train).reshape((1, len(x_train), 4096))
 
-    # Bayesian Hyperparameter Optimization
-    evaluator = train_utils.KFoldEvaluator(get_temporal_model, features, labels)
+    # Preprocess labels
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+
+    # Bayesian Global Optimization of hyperparameters
+    evaluator = train_utils.ModelEvaluator(get_temporal_model, x_train, x_test,
+                                           y_train, y_test)
     hyper_opt = BayesianOptimization(evaluator.evaluate, {'neurons': (40, 200),
                                                           'epochs': (5, 100),
                                                           'lr': (0.0005, 0.005),
                                                           'lr_decay': (0.0, 1e-4),
-                                                          'batch_size': (1, 1)
-                                                         })
+                                                          'batch_size': (1, 1)})
     hyper_opt.maximize()
     optimal = hyper_opt.res['max']
 
-    print("Best hyperparameter settings: " + str(optimal))
-    io_utils.kfold_report_metrics(get_temporal_model, optimal['max_params'], features, labels)
-    # for X, Y in zip(x_train, y_train):
-    #     X = parse_vid(X)
-    #     Y = np.tile(Y, (len(X), 1)).reshape((1, len(X), len(Y)))
-
-    #     X = features_model.predict(X, batch_size=1, verbose=1)
-    #     X = X.reshape((1, len(X), 4096))
-
-    #     temporal_model.train_on_batch(np.array(X), np.array(Y))
-
-    # # Final evaluation of the model
-    # acc = 0
-    # samples = 0
-    # for X, Y in zip(x_test, y_test):
-    #     X = parse_vid(X)
-    #     Y = np.tile(Y, (len(X), 1)).reshape((1, len(X), len(Y)))
-
-    #     X = features_model.predict(X, batch_size=1, verbose=1)
-    #     X = X.reshape((1, len(X), 4096))
-    #     acc += temporal_model.test_on_batch(np.array(X), np.array(Y))[1]
-    #     samples += 1
-    # print("Accuracy: %.2f%%" % (acc/samples*100))
+    io_utils.report_metrics(get_temporal_model, optimal['max_params'], x_train,
+                            x_test, y_train, y_test)
 
 if __name__ == '__main__':
     main()
