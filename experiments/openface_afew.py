@@ -58,7 +58,9 @@ def main():
     features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/afew_parsed")
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/afew")
 
-    for feature_type in ['AU_activations', 'AUs', '2Dlandmarks']:
+    for feature_type in ['AUs', '2Dlandmarks']:
+        print("Using " + feature_type)
+        
         x_train, y_train, x_test, y_test = load_afew_data(features_dir, labels_dir,
                                                           feature_type=feature_type)
         x_train = train_utils.normalize(x_train)
@@ -75,10 +77,9 @@ def main():
         evaluator = train_utils.ModelEvaluator(get_temporal_model, x_train, x_test,
                                                y_train, y_test)
         hyper_opt = BayesianOptimization(evaluator.evaluate, {'neurons': (40, 200),
-                                                              'epochs': (5, 100),
+                                                              'epochs': (5, 40),
                                                               'lr': (0.0005, 0.005),
-                                                              'lr_decay': (0.0, 1e-4),
-                                                              'batch_size': (1, 1)})
+                                                              'lr_decay': (0.0, 1e-4)})
         hyper_opt.maximize()
         optimal = hyper_opt.res['max']
 

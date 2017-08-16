@@ -32,7 +32,7 @@ class FaceFrontalizer():
         self.face_detector = dlib.get_frontal_face_detector()
         self.frontalizer = facefrontal.frontalizer(ref3d_path)
 
-    def frontalize(self, img):
+    def frontalize_image(self, img):
         """
         Given a path to an image, it returns the same image frontalized.
 
@@ -51,17 +51,33 @@ class FaceFrontalizer():
         # which dlib doesn't accept. The 1 in the second argument indicates that
         # we should upsample the image 1 time. This will make everything bigger
         # and allow us to detect more faces.
-        detected_faces = self.face_detector(img[:,:,:3], 1)
+        detected_faces = self.face_detector(img[:, :, :3], 1)
 
         frontalized_faces = []
         for face in detected_faces:
-            shape = self.face_model(img,face)
-            p2d = np.asarray([(shape.part(n).x, shape.part(n).y,) for n in range(shape.num_parts)], np.float32)
+            shape = self.face_model(img, face)
+            p2d = np.asarray([(shape.part(n).x, shape.part(n).y,) for n in range(shape.num_parts)],
+                             np.float32)
 
             rawfront, symfront = self.frontalizer.frontalization(img,face,p2d)
             frontalized_faces.append(sm.toimage(np.round(symfront).astype(np.uint8)))
 
         return frontalized_faces
+
+    def frontalize_video(self, filename):
+        cap = cv2.VideoCapture(filename)
+
+        vid = []
+        while True:
+            ret, img = cap.read()
+            if not ret:
+                break
+            frontalized_faces = frontalizer.frontalize(img)
+            if len(frontalized_faces) > 0:
+                # Just interested in one face per sample.
+                img = np.array(frontalizer.frontalize(img)[0])
+                vid.append(cv2.resize(img, (171, 128)))
+        return np.array(vid, dtype=np.float32)
 
 def class_labels(filename):
     """
@@ -198,7 +214,7 @@ class ModelEvaluator():
         self.y_train = y_train
         self.y_test = y_test
 
-    def evaluate(self, neurons, lr, lr_decay, epochs, batch_size):
+    def evaluate(self, neurons, lr, lr_decay, epochs, batch_size=1):
         # The Gaussian Process' space is continous, so we need to round these values
         neurons, epochs, batch_size = map(lambda x: int(round(x)), (neurons, epochs, batch_size))
 
@@ -228,7 +244,7 @@ class KFoldEvaluator():
         # K-fold stratified cross-validation
         self.skf = StratifiedKFold(n_splits=10, shuffle=True)
 
-    def evaluate(self, neurons, lr, lr_decay, epochs, batch_size):
+    def evaluate(self, neurons, lr, lr_decay, epochs, batch_size=1):
         accuracies = []
         for train_index, test_index in self.skf.split(self.features, self.labels):
             x_train, x_test = [self.features[i] for i in train_index], [self.features[i] for i in test_index]

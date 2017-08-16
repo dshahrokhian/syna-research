@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-DeepMotion - Dataloader for Acted Facial Expressions in the Wild Emotion labels
+DeepMotion - Dataloader for Acted Facial Expressions in the Wild
 ===============================================================================
 """
 # Author: Daniyal Shahrokhian <daniyal@kth.se>

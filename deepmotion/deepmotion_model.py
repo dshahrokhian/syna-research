@@ -6,6 +6,8 @@ DeepMotion - LSTM
 """
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 
+import numpy as np
+
 from keras.layers import (LSTM, Activation, BatchNormalization, Dense, Dropout, Input)
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
@@ -63,6 +65,9 @@ def get_temporal_model(summary=False, layers=[100], lr=0.001, lr_decay=0.0,
     Sequential
         Keras model
     """
+    # Fix random seed for reproducibility
+    np.random.seed(7)
+
     input_features = Input(shape=input_shape, name='features')
     #input_normalized = BatchNormalization(name='normalization')(input_features)
     #input_dropout = Dropout(rate=0.5)(input_normalized)

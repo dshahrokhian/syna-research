@@ -41,14 +41,12 @@ def load_ck_data(openface_dir, emotion_dir, feature_type='AUs'):
     return train_utils.dicts2lists(features, labels)
 
 def main():
-    # Fix random seed for reproducibility
-    np.random.seed(7)
 
     # Load the datasets
     features_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+norm")
     labels_dir = os.path.join(os.path.dirname(__file__), "..", "datasets/ck+")
 
-    for feature_type in ['AU_activations', 'AUs', '2Dlandmarks']:
+    for feature_type in ['AUs', '2Dlandmarks']:
         print("Using " + feature_type)
 
         features, labels = load_ck_data(features_dir, labels_dir, feature_type=feature_type)
@@ -64,9 +62,7 @@ def main():
         hyper_opt = BayesianOptimization(evaluator.evaluate, {'neurons': (40, 200),
                                                               'epochs': (5, 100),
                                                               'lr': (0.0005, 0.005),
-                                                              'lr_decay': (0.0, 1e-4),
-                                                              'batch_size': (1, 1)
-                                                             })
+                                                              'lr_decay': (0.0, 1e-4)})
         hyper_opt.maximize()
         optimal = hyper_opt.res['max']
 
