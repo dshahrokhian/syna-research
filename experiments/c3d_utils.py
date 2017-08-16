@@ -76,7 +76,7 @@ def parse_vid(filename, remove_failures=False):
     if (len(vid) == 0) and (remove_failures):
         return None
     elif (len(vid) == 0) and (not remove_failures):
-        vid = np.array([np.zeros((171, 128), dtype=np.float32)])
+        vid = np.array([np.zeros((3, 128, 171), dtype=np.float32)])
 
     n_frames = len(vid)
     n_clips = math.ceil(n_frames / clip_length)
