@@ -7,15 +7,17 @@ DeepMotion - Training Utils
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
 
 import os
+
+import cv2
 import dlib
-import scipy.misc as sm
-import matplotlib.pyplot as plt
 import numpy as np
-from  deepmotion.frontalization import facefrontal
+import scipy.misc as sm
+from keras.utils.np_utils import to_categorical
 from sklearn import preprocessing
 from sklearn.model_selection import StratifiedKFold
-from sklearn import metrics
-from keras.utils.np_utils import to_categorical
+
+from deepmotion.frontalization import facefrontal
+
 
 class FaceFrontalizer():
     """
@@ -72,10 +74,10 @@ class FaceFrontalizer():
             ret, img = cap.read()
             if not ret:
                 break
-            frontalized_faces = frontalizer.frontalize(img)
+            frontalized_faces = self.frontalize_image(img)
             if len(frontalized_faces) > 0:
                 # Just interested in one face per sample.
-                img = np.array(frontalizer.frontalize(img)[0])
+                img = np.array(self.frontalize_image(img)[0])
                 vid.append(cv2.resize(img, (171, 128)))
         return np.array(vid, dtype=np.float32)
 
