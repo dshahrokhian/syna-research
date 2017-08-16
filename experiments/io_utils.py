@@ -13,6 +13,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils.np_utils import to_categorical
+from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn import metrics
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import StratifiedKFold
@@ -41,22 +42,30 @@ def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
     model = get_model(layers=[neurons], lr=hyperparams['lr'],
                       lr_decay=hyperparams['lr_decay'],
                       input_shape=(None, len(x_train[0][0])))
+    
+    train_losses, train_accs = np.zeros(epochs), np.zeros(epochs)
+    test_losses, test_accs = np.zeros(epochs), np.zeros(epochs)
+    for epoch in range(epochs):
+        for X, Y in zip(x_train, y_train):
+            model.train_on_batch(np.array([X]), np.array([Y]))
 
-    history = model.fit(x_train, y_train, batch_size=1, epochs=epochs, callbacks=None, 
-                        validation_data=(x_test, y_test))
+        train_evals = train_utils.get_scores(model, x_train, y_train)
+        test_evals = train_utils.get_scores(model, x_test, y_test)
+
+        train_losses[epoch] += np.mean([x[0] for x in train_evals])
+        test_losses[epoch] += np.mean([x[0] for x in test_evals])
+        train_accs[epoch] += np.mean([x[1] for x in train_evals])
+        test_accs[epoch] += np.mean([x[1] for x in test_evals])
 
     # Final evaluation of the model
     evals = train_utils.get_scores(model, x_test, y_test)
     losses = [x[0] for x in evals]
     accuracies = [x[1] for x in evals]
-    scores = [np.mean(losses), np.mean(accuracies)]
 
     # Store predictions
     y_pred = train_utils.predict(model, x_test)
     y_true = [np.argmax(y) for y in y_test]
 
-    losses = [x[0] for x in scores]
-    accuracies = [x[1] for x in scores]
     cnf_matrix = metrics.confusion_matrix(y_true, y_pred)
 
     # Print stats
@@ -67,11 +76,12 @@ def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
 
     # Plot figures
     plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
-    plot_learning_curve(get_model(layers=[neurons], lr=hyperparams['lr'],
-                                  lr_decay=hyperparams['lr_decay'],
-                                  input_shape=(None, len(x_train[0][0]))),
-                        x_train, y_train, title="Learning Curve")
-    plot_model_training(history['loss'], history['val_loss'], history['acc'], history['val_acc'])
+    # model_wrapper = KerasClassifier(build_fn=get_model(layers=[neurons], lr=hyperparams['lr'],
+    #                                                    lr_decay=hyperparams['lr_decay'],
+    #                                                    input_shape=(None, len(x_train[0][0]))),
+    #                                 epochs=epochs, batch_size=batch_size)
+    # plot_learning_curve(model_wrapper, x_train, y_train, title="Learning Curve")
+    plot_model_training(train_losses, test_losses, train_accs, test_accs)
     plt.show()
 
 def kfold_report_metrics(get_model, hyperparams, features, labels):
@@ -131,10 +141,12 @@ def kfold_report_metrics(get_model, hyperparams, features, labels):
 
     # Plot figures
     plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
-    plot_learning_curve(get_model(layers=[neurons], lr=hyperparams['lr'],
-                                  lr_decay=hyperparams['lr_decay'],
-                                  input_shape=(None, len(x_train[0][0]))),
-                        features, labels, title="10-Fold Learning Curve", cv=n_splits)
+    # model_wrapper = KerasClassifier(build_fn=get_model(layers=[neurons], lr=hyperparams['lr'],
+    #                                                    lr_decay=hyperparams['lr_decay'],
+    #                                                    input_shape=(None, len(x_train[0][0]))),
+    #                                 epochs=epochs, batch_size=batch_size)
+    # plot_learning_curve(model_wrapper, features, labels, title="10-Fold Learning Curve",
+    #                     cv=n_splits)
     plot_model_training(train_losses/n_splits, test_losses/n_splits, train_accs/n_splits,
                         test_accs/n_splits)
     plt.show()
@@ -207,9 +219,9 @@ def plot_learning_curve(estimator, X, y, title="Learning Curves", ylim=None, cv=
 
     n_jobs : integer, optional
         Number of jobs to run in parallel (default 1).
-    
+
     train_sizes : array-like, shape (sizes), optional
-        Determines the increasing size in the training data for the plot. 
+        Determines the increasing size in the training data for the plot.
         By default, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].
     """
     plt.figure()
@@ -237,7 +249,6 @@ def plot_learning_curve(estimator, X, y, title="Learning Curves", ylim=None, cv=
              label="Cross-validation score")
 
     plt.legend(loc="best")
-    return plt
 
 def plot_model_training(loss, val_loss, acc, val_acc):
     # Losses
@@ -257,5 +268,3 @@ def plot_model_training(loss, val_loss, acc, val_acc):
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper right')
-
-    plt.show()
