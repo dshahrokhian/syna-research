@@ -65,24 +65,18 @@ def get_temporal_model(summary=False, layers=[100], lr=0.001, lr_decay=0.0,
     Sequential
         Keras model
     """
-    # Fix random seed for reproducibility
-    np.random.seed(7)
-
     input_features = Input(shape=input_shape, name='features')
-    #input_normalized = BatchNormalization(name='normalization')(input_features)
-    #input_dropout = Dropout(rate=0.5)(input_normalized)
     input_dropout = Dropout(rate=0.5)(input_features)
     lstm = LSTM(layers[-1], name='lsmt1')(input_dropout)
     output_dropout = Dropout(rate=0.5)(lstm)
-    #output = TimeDistributed(Dense(8, activation='softmax'), name='fc')(output_dropout)
     output = Dense(8, activation='softmax', name='fc')(output_dropout)
 
-    temp_model = Model(inputs=input_features, outputs=output)
+    model = Model(inputs=input_features, outputs=output)
 
     adam_opt = Adam(lr=lr, decay=lr_decay)
-    temp_model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=adam_opt, metrics=['accuracy'])
 
     if summary:
         print(model.summary())
 
-    return temp_model
+    return model

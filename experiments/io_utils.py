@@ -13,10 +13,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils.np_utils import to_categorical
-from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn import metrics
-from sklearn.model_selection import learning_curve
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, learning_curve
 
 import train_utils
 
@@ -34,9 +32,7 @@ def append_csv(filename, results):
 
 def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
     # The Gaussian Process' space is continous, so we need to round some values
-    neurons, epochs, batch_size = map(lambda x: int(round(x)),
-                                      (hyperparams['neurons'], hyperparams['epochs'],
-                                       hyperparams['batch_size']))
+    neurons, epochs = map(lambda x: int(round(x)), (hyperparams['neurons'], hyperparams['epochs']))
 
     # Create and fit the model
     model = get_model(layers=[neurons], lr=hyperparams['lr'],
@@ -76,11 +72,6 @@ def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
 
     # Plot figures
     plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
-    # model_wrapper = KerasClassifier(build_fn=get_model(layers=[neurons], lr=hyperparams['lr'],
-    #                                                    lr_decay=hyperparams['lr_decay'],
-    #                                                    input_shape=(None, len(x_train[0][0]))),
-    #                                 epochs=epochs, batch_size=batch_size)
-    # plot_learning_curve(model_wrapper, x_train, y_train, title="Learning Curve")
     plot_model_training(train_losses, test_losses, train_accs, test_accs)
     plt.show()
 
@@ -141,12 +132,6 @@ def kfold_report_metrics(get_model, hyperparams, features, labels):
 
     # Plot figures
     plot_confusion_matrix(cnf_matrix, classes=CLASS_NAMES)
-    # model_wrapper = KerasClassifier(build_fn=get_model(layers=[neurons], lr=hyperparams['lr'],
-    #                                                    lr_decay=hyperparams['lr_decay'],
-    #                                                    input_shape=(None, len(x_train[0][0]))),
-    #                                 epochs=epochs, batch_size=batch_size)
-    # plot_learning_curve(model_wrapper, features, labels, title="10-Fold Learning Curve",
-    #                     cv=n_splits)
     plot_model_training(train_losses/n_splits, test_losses/n_splits, train_accs/n_splits,
                         test_accs/n_splits)
     plt.show()
