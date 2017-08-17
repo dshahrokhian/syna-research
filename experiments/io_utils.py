@@ -77,9 +77,7 @@ def report_metrics(get_model, hyperparams, x_train, x_test, y_train, y_test):
 
 def kfold_report_metrics(get_model, hyperparams, features, labels):
     # The Gaussian Process' space is continous, so we need to round some values
-    neurons, epochs, batch_size = map(lambda x: int(round(x)),
-                                      (hyperparams['neurons'], hyperparams['epochs'],
-                                       hyperparams['batch_size']))
+    neurons, epochs = map(lambda x: int(round(x)), (hyperparams['neurons'], hyperparams['epochs']))
 
     # K-fold stratified cross-validation
     n_splits = 10
