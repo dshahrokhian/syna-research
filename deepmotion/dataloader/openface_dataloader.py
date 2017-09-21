@@ -89,27 +89,6 @@ def get_2Dlandmarks(filename):
     """
     return open_and_extract(filename, _extract_2Dlandmarks)
 
-def get_normalized_landmarks(filename):
-    """
-    Extracts the Landmarks from an OpenFace feature's file, and normalizes them
-    in the range [-1,1] in both x and y axes.
-    
-    Parameters
-    ----------
-    filename : feature's file
-        
-    Returns
-    -------
-    Dict
-        {timestamp : {Landmark code : Landmark value}}
-    """
-    dict_landmarks = get_2Dlandmarks(filename)
-
-    for timestamp, landmarks in dict_landmarks.items():
-        dict_landmarks.update({timestamp : _normalize(landmarks)})
-    
-    return dict_landmarks
-
 def get_AUs(filename):
     """ 
     Extracts the Action Units out of an OpenFace feature's file.
