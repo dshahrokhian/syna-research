@@ -19,12 +19,12 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn import preprocessing
 from sklearn import metrics
 from keras.utils.np_utils import to_categorical
-import deepmotion.deepmotion_model as deepmotion
+import syna.syna_model as syna
 from bayes_opt import BayesianOptimization
 
 # Data imports
-from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
-from deepmotion.dataloader.ck_dataloader import load_CK_emotions
+from syna.dataloader.openface_dataloader import load_OpenFace_features
+from syna.dataloader.ck_dataloader import load_CK_emotions
 
 import train_utils
 import io_utils
@@ -158,7 +158,7 @@ def main():
         optimal = hyper_opt.res['max']
         
         print("Best hyperparameter settings: " + str(optimal))
-        io_utils.report_metrics('results_spatial.csv', deepmotion.get_model, optimal['max_params'], features, labels)
+        io_utils.report_metrics('results_spatial.csv', syna.get_model, optimal['max_params'], features, labels)
         
 if __name__ == "__main__":
     main()

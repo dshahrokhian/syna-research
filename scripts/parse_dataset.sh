@@ -24,12 +24,12 @@ function avi2mkv {
 
 # Create Landmark video using OpenFace
 function landmark_video {
-  ../deepmotion/OpenFace/build/bin/FaceLandmarkVid -q -f "$1" -ov "$2" >> parse_dataset.log
+  ../syna/OpenFace/build/bin/FaceLandmarkVid -q -f "$1" -ov "$2" >> parse_dataset.log
 }
 
 # Extract features using OpenFace
 function feature_extraction {
-  ../deepmotion/OpenFace/build/bin/FeatureExtraction -q -rigid -wild -multi-view 1 -f "$1" -of "$2" >> parse_dataset.log
+  ../syna/OpenFace/build/bin/FeatureExtraction -q -rigid -wild -multi-view 1 -f "$1" -of "$2" >> parse_dataset.log
 }
 
 # Exit script if any command fails

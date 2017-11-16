@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='deepmotion',
+    name='syna',
     version='0.1',
     install_requires=[
         "numpy",
@@ -17,6 +17,6 @@ setup(
         
     ],
     description="Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Temporal Features.",
-    url='https://github.com/dshahrokhian/deepmotion',
-    packages=['deepmotion', 'deepmotion/dataloader', 'deepmotion/c3d', 'deepmotion/frontalization']
+    url='https://github.com/dshahrokhian/syna',
+    packages=['syna', 'syna/dataloader', 'syna/c3d', 'syna/frontalization']
 )

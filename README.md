@@ -1,4 +1,4 @@
-# DeepMotion
+# Syna
 Emotion Recognition Artificial Intelligence based on Deep Learning and Spatio-Temporal Features.
 
 *This project is still under development*

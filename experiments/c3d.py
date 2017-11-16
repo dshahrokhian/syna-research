@@ -11,9 +11,9 @@ from bayes_opt import BayesianOptimization
 import c3d_utils
 import io_utils
 import train_utils
-from deepmotion.dataloader.ck_dataloader import (load_CK_emotions,
+from syna.dataloader.ck_dataloader import (load_CK_emotions,
                                                  load_CK_videos)
-from deepmotion.deepmotion_model import get_temporal_model
+from syna.syna_model import get_temporal_model
 
 
 def dicts2lists(dict_videos, dict_emotions):

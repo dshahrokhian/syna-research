@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ===============================================================================
-DeepMotion - Training Utils
+Syna - Training Utils
 ===============================================================================
 """
 # Author: Daniyal Shahrokhian <daniyal@kth.se>
@@ -16,7 +16,7 @@ from keras.utils.np_utils import to_categorical
 from sklearn import preprocessing
 from sklearn.model_selection import StratifiedKFold
 
-from deepmotion.frontalization import facefrontal
+from syna.frontalization import facefrontal
 
 
 class FaceFrontalizer():

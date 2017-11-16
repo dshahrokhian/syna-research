@@ -14,9 +14,9 @@ from keras.utils.np_utils import to_categorical
 
 import io_utils
 import train_utils
-from deepmotion.dataloader.afew_dataloader import load_AFEW_emotions
-from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
-from deepmotion.deepmotion_model import get_temporal_model
+from syna.dataloader.afew_dataloader import load_AFEW_emotions
+from syna.dataloader.openface_dataloader import load_OpenFace_features
+from syna.syna_model import get_temporal_model
 
 
 def load_afew_data(openface_dir, emotion_dir, feature_type='AUs'):

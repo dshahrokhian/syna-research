@@ -4,5 +4,5 @@ parse_dataset.log
 .vscode/
 opencv-3.1.0/
 **/__pycache__
-deepmotion/c3d/models/*
-!deepmotion/c3d/models/get_weights_and_mean.sh
+syna/c3d/models/*
+!syna/c3d/models/get_weights_and_mean.sh

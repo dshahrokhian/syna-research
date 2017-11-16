@@ -14,8 +14,8 @@ from keras.utils.np_utils import to_categorical
 import c3d_utils
 import io_utils
 import train_utils
-from deepmotion.dataloader.afew_dataloader import load_AFEW_data
-from deepmotion.deepmotion_model import get_temporal_model
+from syna.dataloader.afew_dataloader import load_AFEW_data
+from syna.syna_model import get_temporal_model
 
 
 def main():

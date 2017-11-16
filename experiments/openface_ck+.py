@@ -10,9 +10,9 @@ import os
 
 import numpy as np
 from bayes_opt import BayesianOptimization
-from deepmotion.dataloader.ck_dataloader import load_CK_emotions
-from deepmotion.dataloader.openface_dataloader import load_OpenFace_features
-from deepmotion.deepmotion_model import get_temporal_model
+from syna.dataloader.ck_dataloader import load_CK_emotions
+from syna.dataloader.openface_dataloader import load_OpenFace_features
+from syna.syna_model import get_temporal_model
 
 import io_utils
 import train_utils

@@ -22,7 +22,7 @@ clip_length = 16
 
 # mean to be subtracted
 mean_dir = os.path.join(os.path.dirname(__file__),
-                        '../deepmotion/c3d/models/train01_16_128_171_mean.npy')
+                        '../syna/c3d/models/train01_16_128_171_mean.npy')
 mean_cube = np.load(mean_dir)
 mean_cube = np.transpose(mean_cube, (1, 2, 3, 0))
 
@@ -33,7 +33,7 @@ def get_C3D_feature_extractor(summary=False):
     Loads the learned C3D model while removing the last 4 layers, which are specific for the task
     of sport classification.
     """
-    model_dir = os.path.join(os.path.dirname(__file__), '../deepmotion/c3d/models')
+    model_dir = os.path.join(os.path.dirname(__file__), '../syna/c3d/models')
 
     model_weight_filename = os.path.join(model_dir, 'sports1M_weights_tf.h5')
     model_json_filename = os.path.join(model_dir, 'sports1M_weights_tf.json')
