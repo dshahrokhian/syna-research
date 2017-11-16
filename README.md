@@ -1,6 +1,5 @@
 <img src="https://user-images.githubusercontent.com/8654460/32914363-9a58350e-cb15-11e7-9628-94ef6de534bf.png" width="300">
 
-# Syna
 Emotion Recognition based on Spatio-Temporal Machine Learning. You can find more information about the project in my Master [thesis](http://kth.diva-portal.org/smash/record.jsf?aq2=%5B%5B%5D%5D&c=37&af=%5B%5D&searchType=LIST_LATEST&sortOrder2=title_sort_asc&query=&language=en&pid=diva2%3A1149133&aq=%5B%5B%5D%5D&sf=all&aqe=%5B%5D&sortOrder=author_sort_asc&onlyFullText=false&noOfRows=50&dswid=5833).
 
 ## Installation [Ubuntu 16.04 LTE]
