@@ -158,7 +158,7 @@ def main():
         optimal = hyper_opt.res['max']
         
         print("Best hyperparameter settings: " + str(optimal))
-        io_utils.report_metrics('results_spatial.csv', syna.get_model, optimal['max_params'], features, labels)
+        io_utils.report_metrics('results_spatial.csv', syna.get_temporal_model, optimal['max_params'], features, labels)
         
 if __name__ == "__main__":
     main()
